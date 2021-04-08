@@ -1,7 +1,10 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
 using UnityEngine;
 using System.Text;
+using UnityEditorInternal;
 using UnityEngine.Networking;
 
 public class ServerClient
@@ -10,11 +13,14 @@ public class ServerClient
     public string playerName;
     public Vector3 position;
 }
+
 public class Server : MonoBehaviour
 {
     private const int MAX_CONNECTION = 100;
 
     private int port = 5701;
+
+    private const int BYTE_SIZE = 1024;
 
     private int hostID;
 
@@ -34,7 +40,7 @@ public class Server : MonoBehaviour
     private float movementUpdateRate = 0.5f;
 
     private void Start()
-	{
+    {
         NetworkTransport.Init();
 
         ConnectionConfig cc = new ConnectionConfig();
@@ -49,15 +55,15 @@ public class Server : MonoBehaviour
         webHostID = NetworkTransport.AddWebsocketHost(topo, port, null);
 
         isStarted = true;
-	}
+    }
 
-	private void Update()
-	{
-        if(!isStarted)
-		{
+    private void Update()
+    {
+        if (!isStarted)
+        {
             return;
-		}
-        
+        }
+
         int recHostId;
         int connectionId;
         int channelId;
@@ -66,7 +72,8 @@ public class Server : MonoBehaviour
         int dataSize;
         byte error;
 
-        NetworkEventType recData = NetworkTransport.Receive(out recHostId, out connectionId, out channelId, recBuffer, bufferSize, out dataSize, out error);
+        NetworkEventType recData =
+            NetworkTransport.Receive(out recHostId, out connectionId, out channelId, recBuffer, bufferSize, out dataSize, out error);
         switch (recData)
         {
             case NetworkEventType.ConnectEvent:
@@ -75,7 +82,14 @@ public class Server : MonoBehaviour
                 break;
 
             case NetworkEventType.DataEvent:
-                string msg = Encoding.Unicode.GetString(recBuffer, 0, dataSize);
+
+                BinaryFormatter formatter = new BinaryFormatter();
+                MemoryStream ms = new MemoryStream(recBuffer);
+                NetMessage msg = (NetMessage) formatter.Deserialize(ms);
+
+                OnData(connectionId, channelId, recHostId, msg);
+
+                /*string msg = Encoding.Unicode.GetString(recBuffer, 0, dataSize);
                 Debug.Log("Recieving from " + connectionId + " : " + msg);
 
                 string[] splitData = msg.Split('|');
@@ -92,7 +106,7 @@ public class Server : MonoBehaviour
                     default:
                         Debug.Log("Invalid Message: " + msg);
                         break;
-                }
+                }*/
                 break;
 
             case NetworkEventType.DisconnectEvent:
@@ -102,22 +116,39 @@ public class Server : MonoBehaviour
         }
 
         // Ask player for position
-        if(Time.time - lastMovementUpdate > movementUpdateRate)
-		{
+        if (Time.time - lastMovementUpdate > movementUpdateRate)
+        {
             lastMovementUpdate = Time.time;
-            string message = "ASKPOSITION|";
 
-            foreach(ServerClient sc in clients)
-			{
-                 message += sc.connectionID.ToString() + '%' + sc.position.x.ToString() + '%' + sc.position.y.ToString() + '|';
-			}
-            message = message.Trim('|');
-            Send(message, unreliableChannel, clients);
+            Net_AskPosition askPosition = new Net_AskPosition();
+
+
+            for (int i = 0; i < clients.Count; i++)
+            {
+                askPosition.playerPositions[i].x = clients[i].position.x;
+                askPosition.playerPositions[i].y = clients[i].position.y;
+                askPosition.playerPositions[i].ccnID = clients[i].connectionID;
+            }
+
+            Send(askPosition, clients);
+        }
+    }
+
+    //This will handle our network messages
+    private void OnData(int ccnId, int channelId, int recHostId, NetMessage msg)
+    {
+        switch (msg.code)
+        {
+            case NetCode.None:
+                break;
+            case NetCode.NameIs:
+                OnNameIs(ccnId, (Net_NameIs) msg);
+                break;
         }
     }
 
     private void OnConnection(int cnnID)
-	{
+    {
         // Add him to list
         ServerClient c = new ServerClient();
         c.connectionID = cnnID;
@@ -125,20 +156,28 @@ public class Server : MonoBehaviour
 
         clients.Add(c);
 
-        // When player joins server, sey ID
+        // When player joins server, say ID
 
         // Request name, send name of all other players
-        string msg = "ASKNAME|" + cnnID + "|";
+        //string msg = "ASKNAME|" + cnnID + "|";
 
-        foreach(ServerClient sc in clients)
-		{
-            msg += sc.playerName + "%" + sc.connectionID + "|";
-		}
+        Net_AskName askName = new Net_AskName();
+        askName.clientID = cnnID;
 
-        msg = msg.Trim('|');
+        for (int i = 0; i < clients.Count; i++)
+        {
+            askName.currentPlayers[i] = clients[i].playerName;
+            askName.currentIDs[i] = clients[i].connectionID;
+            //msg += sc.playerName + "%" + sc.connectionID + "|";
+        }
 
-        Send(msg, reliableChannel, cnnID);
-	}
+        // msg = msg.Trim('|');
+
+        //Send(msg, reliableChannel, cnnID);
+
+        SendClient(cnnID, askName);
+    }
+
     private void OnDisconnection(int cnnID)
     {
         // remove this player from list
@@ -147,35 +186,55 @@ public class Server : MonoBehaviour
         // tell all player some has disconnected
         Send("DC|" + cnnID, reliableChannel, clients);
     }
-    private void OnNameIs(int cnnID, string playerName)
-	{
+
+    private void OnNameIs(int cnnID, Net_NameIs msg)
+    {
         // Link name to connection ID
-        clients.Find(x => x.connectionID == cnnID).playerName = playerName;
+        clients.Find(x => x.connectionID == cnnID).playerName = msg.playerName;
 
-		// Tell everyone new player connected
-		Send("CNN|" + playerName + "|"+ cnnID, reliableChannel,clients);
+        // Tell everyone new player connected
+        //Send("CNN|" + playerName + "|" + cnnID, reliableChannel, clients);
 
-	}
+        Net_NewPlayerJoin newPlayerJoin = new Net_NewPlayerJoin();
+        newPlayerJoin.playerName = msg.playerName;
+        newPlayerJoin.cnnID = cnnID;
+        Send(newPlayerJoin, clients);
+    }
 
     private void OnMyPosition(int cnnID, float x, float y)
-	{
+    {
         clients.Find(c => c.connectionID == cnnID).position = new Vector3(x, y, 0);
-	}
-    private void Send(string message, int channelID, int cnnID)
-	{
+    }
+
+    private void Send(NetMessage msg, int cnnID)
+    {
         List<ServerClient> c = new List<ServerClient>();
         c.Add(clients.Find(x => x.connectionID == cnnID));
-        Send(message, channelID, c);
+        Send(msg, c);
+    }
 
-	}
-    private void Send(string message, int channelID, List<ServerClient> c)
+    private void Send(NetMessage msg, List<ServerClient> c)
     {
-        Debug.Log("Sending: " + message);
-        byte[] msg = Encoding.Unicode.GetBytes(message);
+        byte[] buffer = new byte[BYTE_SIZE];
 
-        foreach(ServerClient sc in c)
-		{
-            NetworkTransport.Send(hostID, sc.connectionID, channelID, msg, message.Length * sizeof(char), out error);
-		}
+        BinaryFormatter formatter = new BinaryFormatter();
+        MemoryStream ms = new MemoryStream(buffer);
+        formatter.Serialize(ms, msg);
+
+        foreach (ServerClient sc in c)
+        {
+            NetworkTransport.Send(hostID, sc.connectionID, reliableChannel, buffer, BYTE_SIZE, out error);
+        }
+    }
+
+    private void SendClient(int ccnId, NetMessage msg)
+    {
+        byte[] buffer = new byte[BYTE_SIZE];
+
+        BinaryFormatter formatter = new BinaryFormatter();
+        MemoryStream ms = new MemoryStream(buffer);
+        formatter.Serialize(ms, msg);
+
+        NetworkTransport.Send(hostID, ccnId, reliableChannel, buffer, BYTE_SIZE, out error);
     }
 }
