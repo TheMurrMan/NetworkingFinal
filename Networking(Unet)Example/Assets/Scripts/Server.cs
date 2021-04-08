@@ -1,10 +1,7 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using UnityEngine;
-using System.Text;
-using UnityEditorInternal;
 using UnityEngine.Networking;
 
 public class ServerClient
@@ -121,13 +118,13 @@ public class Server : MonoBehaviour
             lastMovementUpdate = Time.time;
 
             Net_AskPosition askPosition = new Net_AskPosition();
-
+            askPosition.playerPositions = new Net_AskPosition.position[clients.Count + 1];
 
             for (int i = 0; i < clients.Count; i++)
             {
                 askPosition.playerPositions[i].x = clients[i].position.x;
                 askPosition.playerPositions[i].y = clients[i].position.y;
-                askPosition.playerPositions[i].ccnID = clients[i].connectionID;
+                askPosition.playerPositions[i].cnnID = clients[i].connectionID;
             }
 
             Send(askPosition, clients);
@@ -143,6 +140,9 @@ public class Server : MonoBehaviour
                 break;
             case NetCode.NameIs:
                 OnNameIs(ccnId, (Net_NameIs) msg);
+                break;
+            case NetCode.MyPosition:
+                OnMyPosition((Net_MyPosition) msg);
                 break;
         }
     }
@@ -163,7 +163,10 @@ public class Server : MonoBehaviour
 
         Net_AskName askName = new Net_AskName();
         askName.clientID = cnnID;
-
+        askName.currentPlayers = new string[clients.Count + 1];
+        askName.currentIDs = new int[clients.Count + 1];
+        
+        
         for (int i = 0; i < clients.Count; i++)
         {
             askName.currentPlayers[i] = clients[i].playerName;
@@ -175,7 +178,7 @@ public class Server : MonoBehaviour
 
         //Send(msg, reliableChannel, cnnID);
 
-        SendClient(cnnID, askName);
+        Send(askName, cnnID);
     }
 
     private void OnDisconnection(int cnnID)
@@ -184,7 +187,8 @@ public class Server : MonoBehaviour
         clients.Remove(clients.Find(x => x.connectionID == cnnID));
 
         // tell all player some has disconnected
-        Send("DC|" + cnnID, reliableChannel, clients);
+        Net_Disconnect msg = new Net_Disconnect {cnnID = cnnID};
+        Send(msg, clients);
     }
 
     private void OnNameIs(int cnnID, Net_NameIs msg)
@@ -201,9 +205,9 @@ public class Server : MonoBehaviour
         Send(newPlayerJoin, clients);
     }
 
-    private void OnMyPosition(int cnnID, float x, float y)
+    private void OnMyPosition(Net_MyPosition msg)
     {
-        clients.Find(c => c.connectionID == cnnID).position = new Vector3(x, y, 0);
+        clients.Find(c => c.connectionID == msg.ownID).position = new Vector3(msg.x, msg.y, 0);
     }
 
     private void Send(NetMessage msg, int cnnID)
@@ -225,16 +229,5 @@ public class Server : MonoBehaviour
         {
             NetworkTransport.Send(hostID, sc.connectionID, reliableChannel, buffer, BYTE_SIZE, out error);
         }
-    }
-
-    private void SendClient(int ccnId, NetMessage msg)
-    {
-        byte[] buffer = new byte[BYTE_SIZE];
-
-        BinaryFormatter formatter = new BinaryFormatter();
-        MemoryStream ms = new MemoryStream(buffer);
-        formatter.Serialize(ms, msg);
-
-        NetworkTransport.Send(hostID, ccnId, reliableChannel, buffer, BYTE_SIZE, out error);
     }
 }

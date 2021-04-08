@@ -9,7 +9,7 @@ public class Net_AskPosition : NetMessage
     [System.Serializable]
     public struct position
     {
-        public int ccnID;
+        public int cnnID;
         public float x;
         public float y;
     }

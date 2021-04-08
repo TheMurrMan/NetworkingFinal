@@ -1,12 +1,12 @@
-﻿using System.Collections;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using UnityEngine;
-using System.Text;
 using UnityEngine.UI;
 using UnityEngine.Networking;
 
+[Serializable]
 public class Player
 {
     public string playerName;
@@ -38,7 +38,7 @@ public class Client : MonoBehaviour
     private string playerName;
 
     public GameObject playerPrefab;
-    public Dictionary<int, Player> players = new Dictionary<int, Player>();
+    public List<Player> players = new List<Player>();
 
     public void Connect()
     {
@@ -97,32 +97,32 @@ public class Client : MonoBehaviour
 
                 OnData(connectionId, channelId, recHostId, msg);
 
-               /* string msg = Encoding.Unicode.GetString(recBuffer, 0, dataSize);
-                Debug.Log("Recieving: " + msg);
-
-                string[] splitData = msg.Split('|');
-                switch (splitData[0])
-                {
-                    case "ASKNAME":
-                        OnAskName(splitData);
-                        break;
-
-                    case "CNN":
-                        SpawnPlayer(splitData[1], int.Parse(splitData[2]));
-                        break;
-
-                    case "DC":
-                        PlayerDisconnected(int.Parse(splitData[1]));
-                        break;
-
-                    case "ASKPOSITION":
-                        OnAskPosition(splitData);
-                        break;
-
-                    default:
-                        Debug.Log("Invalid Message: " + msg);
-                        break;
-                }*/
+                /* string msg = Encoding.Unicode.GetString(recBuffer, 0, dataSize);
+                 Debug.Log("Recieving: " + msg);
+ 
+                 string[] splitData = msg.Split('|');
+                 switch (splitData[0])
+                 {
+                     case "ASKNAME":
+                         OnAskName(splitData);
+                         break;
+ 
+                     case "CNN":
+                         SpawnPlayer(splitData[1], int.Parse(splitData[2]));
+                         break;
+ 
+                     case "DC":
+                         PlayerDisconnected(int.Parse(splitData[1]));
+                         break;
+ 
+                     case "ASKPOSITION":
+                         OnAskPosition(splitData);
+                         break;
+ 
+                     default:
+                         Debug.Log("Invalid Message: " + msg);
+                         break;
+                 }*/
 
                 break;
         }
@@ -144,7 +144,11 @@ public class Client : MonoBehaviour
                 SpawnPlayer(newPlayer.playerName, newPlayer.cnnID);
                 break;
             case NetCode.AskPosition:
-                OnAskPosition((Net_AskPosition)msg);
+                OnAskPosition((Net_AskPosition) msg);
+                break;
+            case NetCode.Disconnect:
+                PlayerDisconnected((Net_Disconnect) msg);
+                break;
         }
     }
 
@@ -155,7 +159,7 @@ public class Client : MonoBehaviour
 
         Net_NameIs nameIs = new Net_NameIs();
         nameIs.playerName = playerName;
-        
+
         // Send our name to server
         //Send("NAMEIS|" + playerName, reliableChannel);
         SendServer(nameIs);
@@ -195,19 +199,27 @@ public class Client : MonoBehaviour
                 players[int.Parse(d[0])].avatar.transform.position = pos;
             }*/
 
-            if(ourClientID == msg.playerPositions[i].ccnID) continue;
-            
-            Vector3 pos = new Vector3(msg.playerPositions[i].x, msg.playerPositions[i].y);
-            players[msg.playerPositions[i].ccnID].avatar.transform.position = pos;
+            if (ourClientID == msg.playerPositions[i].cnnID) continue;
 
+            Vector3 pos = new Vector3(msg.playerPositions[i].x, msg.playerPositions[i].y);
+            Player p = players.Find(x => x.connectionID == msg.playerPositions[i].cnnID);
+
+            foreach (var t in players)
+            {
+                if (t.connectionID == msg.playerPositions[i].cnnID)
+                {
+                    Debug.Log("Found ID: " + t.connectionID + "in list");
+                }
+            }
+            
+            p.avatar.transform.position = pos;
+            //players[msg.playerPositions[i].cnnID].avatar.transform.position = pos;
         }
-        
-        
 
         // Send our position
-        Vector3 myPos = players[ourClientID].avatar.transform.position;
-        string m = "MYPOSITION|" + myPos.x.ToString() + '|' + myPos.y.ToString();
-        Send(m, unreliableChannel);
+        Vector3 myPos = players.Find(x => x.connectionID == ourClientID).avatar.transform.position;
+        Net_MyPosition myPosition = new Net_MyPosition {ownID = ourClientID, x = myPos.x, y = myPos.y};
+        SendServer(myPosition);
     }
 
     private void SpawnPlayer(string playerName, int cnnID)
@@ -218,6 +230,7 @@ public class Client : MonoBehaviour
         {
             // Remove canvas
             GameObject.Find("Canvas").SetActive(false);
+            go.AddComponent<PlayerMovement>();
             isStarted = true;
         }
 
@@ -226,22 +239,22 @@ public class Client : MonoBehaviour
         p.playerName = playerName;
         p.connectionID = cnnID;
         p.avatar.GetComponentInChildren<TextMesh>().text = playerName;
-        players.Add(cnnID, p);
+        players.Add(p);
     }
 
-    private void PlayerDisconnected(int cnnID)
+    private void PlayerDisconnected(Net_Disconnect msg)
     {
-        Destroy(players[cnnID].avatar);
-        players.Remove(cnnID);
+        Destroy(players[msg.cnnID].avatar);
+        players.Remove(players.Find(x => x.connectionID == msg.cnnID));
     }
 
-    private void Send(string message, int channelID)
-    {
-        Debug.Log("Sending: " + message);
-        byte[] msg = Encoding.Unicode.GetBytes(message);
-
-        NetworkTransport.Send(hostID, connectionID, channelID, msg, message.Length * sizeof(char), out error);
-    }
+    /* private void Send(string message, int channelID)
+     {
+         Debug.Log("Sending: " + message);
+         byte[] msg = Encoding.Unicode.GetBytes(message);
+ 
+         NetworkTransport.Send(hostID, connectionID, channelID, msg, message.Length * sizeof(char), out error);
+     }*/
 
     private void SendServer(NetMessage msg)
     {
