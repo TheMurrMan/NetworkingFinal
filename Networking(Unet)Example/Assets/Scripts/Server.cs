@@ -34,7 +34,7 @@ public class Server : MonoBehaviour
     private List<ServerClient> clients = new List<ServerClient>();
 
     private float lastMovementUpdate;
-    private float movementUpdateRate = 0.5f;
+    private float movementUpdateRate = 0.1f;
 
     private void Start()
     {
@@ -124,6 +124,7 @@ public class Server : MonoBehaviour
             {
                 askPosition.playerPositions[i].x = clients[i].position.x;
                 askPosition.playerPositions[i].y = clients[i].position.y;
+                askPosition.playerPositions[i].z = clients[i].position.z;
                 askPosition.playerPositions[i].cnnID = clients[i].connectionID;
             }
 
@@ -165,8 +166,8 @@ public class Server : MonoBehaviour
         askName.clientID = cnnID;
         askName.currentPlayers = new string[clients.Count + 1];
         askName.currentIDs = new int[clients.Count + 1];
-        
-        
+
+
         for (int i = 0; i < clients.Count; i++)
         {
             askName.currentPlayers[i] = clients[i].playerName;
@@ -202,12 +203,17 @@ public class Server : MonoBehaviour
         Net_NewPlayerJoin newPlayerJoin = new Net_NewPlayerJoin();
         newPlayerJoin.playerName = msg.playerName;
         newPlayerJoin.cnnID = cnnID;
+
+        //var newList = clients;
+
+        //newList.Remove(clients.Find(x => x.connectionID == cnnID));
+
         Send(newPlayerJoin, clients);
     }
 
     private void OnMyPosition(Net_MyPosition msg)
     {
-        clients.Find(c => c.connectionID == msg.ownID).position = new Vector3(msg.x, msg.y, 0);
+        clients.Find(c => c.connectionID == msg.ownID).position = new Vector3(msg.x, msg.y, msg.z);
     }
 
     private void Send(NetMessage msg, int cnnID)

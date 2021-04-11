@@ -5,6 +5,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Networking;
+using UnityEngine.PlayerLoop;
 
 [Serializable]
 public class Player
@@ -35,10 +36,11 @@ public class Client : MonoBehaviour
     private bool isStarted = false;
     private byte error;
 
-    private string playerName;
+    private string ourPlayerName;
 
     public GameObject playerPrefab;
-    public List<Player> players = new List<Player>();
+
+    [SerializeField] public List<Player> players = new List<Player>();
 
     public void Connect()
     {
@@ -52,7 +54,7 @@ public class Client : MonoBehaviour
             return;
         }
 
-        playerName = pName;
+        ourPlayerName = pName;
 
         NetworkTransport.Init();
 
@@ -140,8 +142,7 @@ public class Client : MonoBehaviour
                 OnAskName((Net_AskName) msg);
                 break;
             case NetCode.NewPlayer:
-                Net_NewPlayerJoin newPlayer = (Net_NewPlayerJoin) msg;
-                SpawnPlayer(newPlayer.playerName, newPlayer.cnnID);
+                OnNewPlayer((Net_NewPlayerJoin) msg);
                 break;
             case NetCode.AskPosition:
                 OnAskPosition((Net_AskPosition) msg);
@@ -152,13 +153,21 @@ public class Client : MonoBehaviour
         }
     }
 
+
+    private void OnNewPlayer(Net_NewPlayerJoin msg)
+    {
+        if (msg.cnnID == ourClientID) return;
+
+        SpawnPlayer(msg.playerName, msg.cnnID);
+    }
+
     private void OnAskName(Net_AskName msg)
     {
         // Set this clients ID
         ourClientID = msg.clientID;
 
         Net_NameIs nameIs = new Net_NameIs();
-        nameIs.playerName = playerName;
+        nameIs.playerName = ourPlayerName;
 
         // Send our name to server
         //Send("NAMEIS|" + playerName, reliableChannel);
@@ -201,24 +210,21 @@ public class Client : MonoBehaviour
 
             if (ourClientID == msg.playerPositions[i].cnnID) continue;
 
-            Vector3 pos = new Vector3(msg.playerPositions[i].x, msg.playerPositions[i].y);
+            Vector3 pos = new Vector3(msg.playerPositions[i].x, msg.playerPositions[i].y, msg.playerPositions[i].z);
             Player p = players.Find(x => x.connectionID == msg.playerPositions[i].cnnID);
 
-            foreach (var t in players)
-            {
-                if (t.connectionID == msg.playerPositions[i].cnnID)
-                {
-                    Debug.Log("Found ID: " + t.connectionID + "in list");
-                }
-            }
-            
+
+            Debug.Log("Current ID: " + msg.playerPositions[i].cnnID);
+
+            if (msg.playerPositions[i].cnnID == 0) continue;
+
             p.avatar.transform.position = pos;
             //players[msg.playerPositions[i].cnnID].avatar.transform.position = pos;
         }
 
         // Send our position
         Vector3 myPos = players.Find(x => x.connectionID == ourClientID).avatar.transform.position;
-        Net_MyPosition myPosition = new Net_MyPosition {ownID = ourClientID, x = myPos.x, y = myPos.y};
+        Net_MyPosition myPosition = new Net_MyPosition {ownID = ourClientID, x = myPos.x, y = myPos.y, z = myPos.z};
         SendServer(myPosition);
     }
 
@@ -226,25 +232,31 @@ public class Client : MonoBehaviour
     {
         GameObject go = Instantiate(playerPrefab, transform.position, Quaternion.identity);
 
-        if (cnnID == ourClientID)
-        {
-            // Remove canvas
-            GameObject.Find("Canvas").SetActive(false);
-            go.AddComponent<PlayerController>();
-            isStarted = true;
-        }
-
         Player p = new Player();
         p.avatar = go;
         p.playerName = playerName;
         p.connectionID = cnnID;
         p.avatar.GetComponentInChildren<TextMesh>().text = playerName;
+
+        if (cnnID == ourClientID)
+        {
+            // Remove canvas
+            GameObject.Find("Canvas").SetActive(false);
+            go.AddComponent<PlayerController>();
+            Rigidbody rb = go.AddComponent<Rigidbody>();
+            rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ | RigidbodyConstraints.FreezePositionY;
+            
+            go.AddComponent<CapsuleCollider>();
+            p.avatar.GetComponentInChildren<TextMesh>().text = ourPlayerName;
+
+            isStarted = true;
+        }
         players.Add(p);
     }
 
     private void PlayerDisconnected(Net_Disconnect msg)
     {
-        Destroy(players[msg.cnnID].avatar);
+        Destroy(players.Find(x => x.connectionID == msg.cnnID).avatar);
         players.Remove(players.Find(x => x.connectionID == msg.cnnID));
     }
 

@@ -9,4 +9,5 @@ public class Net_MyPosition : NetMessage
     public int ownID;
     public float x;
     public float y;
+    public float z;
 }

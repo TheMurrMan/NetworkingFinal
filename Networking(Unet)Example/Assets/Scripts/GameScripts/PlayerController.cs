@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Experimental.TerrainAPI;
 
 public class PlayerController : MonoBehaviour
 {
@@ -12,12 +13,16 @@ public class PlayerController : MonoBehaviour
 
     public GameObject bulletPrefab;
     public Transform gunEnd;
-
+    
     [SerializeField] private int playerHealth = 100;
 	private void Start()
 	{
         rb = GetComponent<Rigidbody>();
         cam = FindObjectOfType<Camera>();
+
+        gunEnd = transform.GetChild(2);
+        bulletPrefab = Resources.Load("Bullet") as GameObject;
+        
 	}
 	// Update is called once per frame
 	void Update()
