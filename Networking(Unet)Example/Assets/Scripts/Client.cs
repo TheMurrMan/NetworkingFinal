@@ -230,7 +230,7 @@ public class Client : MonoBehaviour
         {
             // Remove canvas
             GameObject.Find("Canvas").SetActive(false);
-            go.AddComponent<PlayerMovement>();
+            go.AddComponent<PlayerController>();
             isStarted = true;
         }
 

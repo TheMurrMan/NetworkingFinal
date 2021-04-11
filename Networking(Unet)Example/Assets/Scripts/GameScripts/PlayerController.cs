@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PlayerMovement : MonoBehaviour
+public class PlayerController : MonoBehaviour
 {
     private float moveSpeed = 5;
     Vector3 movement = Vector3.zero;
@@ -13,7 +13,7 @@ public class PlayerMovement : MonoBehaviour
     public GameObject bulletPrefab;
     public Transform gunEnd;
 
-    private int playerHealth = 100;
+    [SerializeField] private int playerHealth = 100;
 	private void Start()
 	{
         rb = GetComponent<Rigidbody>();
@@ -23,11 +23,18 @@ public class PlayerMovement : MonoBehaviour
 	void Update()
     {
         GetPlayerInput();
+
+        if(playerHealth <=0)
+		{
+            Debug.Log("DIE");
+            //Die();
+        }
     }
 
 	private void FixedUpdate()
 	{
         rb.MovePosition(rb.position + movement * moveSpeed * Time.fixedDeltaTime);
+        //transform.Translate(movement * moveSpeed * Time.fixedDeltaTime);
     }
 
     void GetPlayerInput()
@@ -56,6 +63,16 @@ public class PlayerMovement : MonoBehaviour
     void SpawnBullet()
 	{
         Instantiate(bulletPrefab, gunEnd.position, gunEnd.rotation);
+	}
+
+    void Die()
+	{
+        Destroy(gameObject);
+	}
+
+    public void TakeDamage(int damage)
+	{
+        playerHealth -= damage;
 	}
 
     public int GetHealth()
