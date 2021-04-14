@@ -4,35 +4,124 @@ using UnityEngine;
 
 public class AIManager : MonoBehaviour
 {
-    public GameObject aiPrefab;
+    
+    [System.Serializable]
+    public class Wave
+	{
+        public GameObject enemy;
+        public int count;
+	}
+
+    public enum SpawnState
+    {
+        Spawning,
+        Waiting,
+        Counting
+    }
+
+    public Wave[] waves;
+    private int nextWave = 0;
+    public float timeBetweenWaves = 5f;
+
+    public float waveCountdown;
+    private float searchCountdown = 1f;
+    private SpawnState state = SpawnState.Counting;
     List<GameObject> aiList;
-	[SerializeField] private int numUnitToSpawn;
 
 	// Start is called before the first frame update
 	void Start()
     {
         aiList = new List<GameObject>();
+        waveCountdown = timeBetweenWaves;
     }
 
     // Update is called once per frame
     void Update()
     {
+        if(state == SpawnState.Waiting)
+		{
+            // Check if enemies are alive
+            if(!EnemyIsAlive())
+			{
+                // Begin new round
+                WaveCompleted();
+			}
+
+            else
+			{
+                return;
+			}
+		}
+
+        if (waveCountdown <= 0)
+        { 
+            if(state != SpawnState.Spawning)
+			{
+                // Start spawning
+                SpawnWave(waves[nextWave]);
+            }
+        }
+
+        else
+		{
+            waveCountdown -= Time.deltaTime;
+		}
+
         if (Input.GetKeyDown(KeyCode.T))
         {
-            SpawnAI();
+            SpawnWave(waves[nextWave]);
         }
     }
 
-    void SpawnAI()
+    void WaveCompleted()
+	{
+        Debug.Log("Wave Completed");
+
+        state = SpawnState.Counting;
+        waveCountdown = timeBetweenWaves;
+
+        if(nextWave+1 > waves.Length -1)
+		{
+            nextWave = 0;
+            Debug.Log("All waves complete");
+		}
+
+        nextWave++;
+    }
+    bool EnemyIsAlive()
+	{
+        searchCountdown -= Time.deltaTime;
+
+        if(searchCountdown <= 0)
+		{
+            searchCountdown = 1f;
+            if (GameObject.FindGameObjectWithTag("AI") == null)
+            {
+                return false;
+            }
+        }
+
+        return true;
+	}
+    void SpawnWave(Wave _wave)
+	{
+        Debug.Log("Spawning Wave");
+        state = SpawnState.Spawning;
+        
+        for (int i = 0; i < _wave.count; ++i)
+        {
+            SpawnEnemy(_wave.enemy);
+        }
+
+        state = SpawnState.Waiting;
+    }
+
+    void SpawnEnemy(GameObject enemy)
 	{
         Vector3 newPos;
-
-        for (int i = 0; i < numUnitToSpawn; ++i)
-        {
-            GameObject newAI = Instantiate(aiPrefab);
-            newPos = new Vector3(Random.Range(-10, 10), 0.25f, Random.Range(-10, 10));
-            newAI.transform.position = newPos;
-            aiList.Add(newAI);
-        }
+        GameObject newAI = Instantiate(enemy);
+        newPos = new Vector3(Random.Range(-10, 10), 0.25f, Random.Range(-10, 10));
+        newAI.transform.position = newPos;
+        aiList.Add(newAI);
     }
 }
