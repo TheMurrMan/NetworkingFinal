@@ -5,8 +5,8 @@ using UnityEngine.Experimental.TerrainAPI;
 
 public class PlayerController : MonoBehaviour
 {
-    private float moveSpeed = 5;
-    Vector3 movement = Vector3.zero;
+    public float moveSpeed = 5;
+    public Vector3 movement = Vector3.zero;
 
     private Camera cam;
     private Rigidbody rb;

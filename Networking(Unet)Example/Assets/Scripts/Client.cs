@@ -1,11 +1,12 @@
-﻿using System;
+﻿#pragma warning disable 618
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Networking;
-using UnityEngine.PlayerLoop;
 
 [Serializable]
 public class Player
@@ -13,6 +14,10 @@ public class Player
     public string playerName;
     public GameObject avatar;
     public int connectionID;
+    public Vector3 oldPosition;
+    public Vector3 newPosition;
+    public bool isMoving = false;
+    public Vector3 dir;
 }
 
 public class Client : MonoBehaviour
@@ -39,6 +44,9 @@ public class Client : MonoBehaviour
     private string ourPlayerName;
 
     public GameObject playerPrefab;
+    public Player ownPlayer;
+
+    private float updateTime;
 
     [SerializeField] public List<Player> players = new List<Player>();
 
@@ -81,6 +89,36 @@ public class Client : MonoBehaviour
             return;
         }
 
+        RecievePackets();
+
+        UpdateOtherPlayerPosition();
+    }
+
+    private void UpdateOtherPlayerPosition()
+    {
+        foreach (Player p in players)
+        {
+            //Don't update ourself
+            if (p.connectionID == ourClientID) continue;
+
+            if (updateTime > 0f)
+            {
+                updateTime -= Time.deltaTime;
+                p.avatar.transform.position = Vector3.Lerp(p.oldPosition, p.newPosition, .1f);
+            }
+            else if (p.isMoving)
+            {
+                // Dead Reckoning
+
+                // Assume the players never change speed and they are using the same speed 
+
+                p.avatar.transform.position += p.dir * (ownPlayer.avatar.GetComponent<PlayerController>().moveSpeed * Time.deltaTime);
+            }
+        }
+    }
+
+    private void RecievePackets()
+    {
         int recHostId;
         int connectionId;
         int channelId;
@@ -98,38 +136,9 @@ public class Client : MonoBehaviour
                 NetMessage msg = (NetMessage) formatter.Deserialize(ms);
 
                 OnData(connectionId, channelId, recHostId, msg);
-
-                /* string msg = Encoding.Unicode.GetString(recBuffer, 0, dataSize);
-                 Debug.Log("Recieving: " + msg);
- 
-                 string[] splitData = msg.Split('|');
-                 switch (splitData[0])
-                 {
-                     case "ASKNAME":
-                         OnAskName(splitData);
-                         break;
- 
-                     case "CNN":
-                         SpawnPlayer(splitData[1], int.Parse(splitData[2]));
-                         break;
- 
-                     case "DC":
-                         PlayerDisconnected(int.Parse(splitData[1]));
-                         break;
- 
-                     case "ASKPOSITION":
-                         OnAskPosition(splitData);
-                         break;
- 
-                     default:
-                         Debug.Log("Invalid Message: " + msg);
-                         break;
-                 }*/
-
                 break;
         }
     }
-
 
     //This will handle our network messages
     private void OnData(int ccnId, int channelId, int recHostId, NetMessage msg)
@@ -170,16 +179,9 @@ public class Client : MonoBehaviour
         nameIs.playerName = ourPlayerName;
 
         // Send our name to server
-        //Send("NAMEIS|" + playerName, reliableChannel);
         SendServer(nameIs);
 
         // Create all other players
-        /*for (int i = 2; i < data.Length - 1; ++i)
-        {
-            string[] d = data[i].Split('%');
-            SpawnPlayer(d[0], int.Parse(data[1]));
-        }*/
-
         for (int i = 0; i < msg.currentPlayers.Length; i++)
         {
             //We don't want to spawn ourselves;
@@ -198,33 +200,39 @@ public class Client : MonoBehaviour
         // Update everyone else
         for (int i = 0; i < msg.playerPositions.Length; ++i)
         {
-            /*string[] d = data[i].Split('%');
-
-            // Prevent server from updating us
-            if (ourClientID != int.Parse(d[0]))
-            {
-                Vector3 pos = new Vector3(float.Parse(d[1]), float.Parse(d[2]));
-
-                players[int.Parse(d[0])].avatar.transform.position = pos;
-            }*/
-
             if (ourClientID == msg.playerPositions[i].cnnID) continue;
 
             Vector3 pos = new Vector3(msg.playerPositions[i].x, msg.playerPositions[i].y, msg.playerPositions[i].z);
             Player p = players.Find(x => x.connectionID == msg.playerPositions[i].cnnID);
 
+            Vector3 dir = new Vector3(msg.playerPositions[i].dirX, 0, msg.playerPositions[i].dirZ);
 
             Debug.Log("Current ID: " + msg.playerPositions[i].cnnID);
 
             if (msg.playerPositions[i].cnnID == 0) continue;
 
-            p.avatar.transform.position = pos;
-            //players[msg.playerPositions[i].cnnID].avatar.transform.position = pos;
+            p.oldPosition = p.newPosition;
+            p.avatar.transform.position = p.newPosition;
+            p.newPosition = pos;
+            p.dir = dir;
+
+            p.isMoving = msg.playerPositions[i].isMoving;
+            updateTime = 0.1f;
         }
 
         // Send our position
-        Vector3 myPos = players.Find(x => x.connectionID == ourClientID).avatar.transform.position;
-        Net_MyPosition myPosition = new Net_MyPosition {ownID = ourClientID, x = myPos.x, y = myPos.y, z = myPos.z};
+        Vector3 myPos = ownPlayer.avatar.transform.position;
+
+        Vector3 movement = ownPlayer.avatar.GetComponent<PlayerController>().movement;
+        
+        Net_MyPosition myPosition = new Net_MyPosition
+            {ownID = ourClientID, x = myPos.x, y = myPos.y, z = myPos.z, dirX = movement.x, dirZ = movement.z, isMoving = true};
+
+        if (movement == Vector3.zero)
+            myPosition.isMoving = false;
+        
+        // Debug.Log(movement);
+
         SendServer(myPosition);
     }
 
@@ -238,6 +246,10 @@ public class Client : MonoBehaviour
         p.connectionID = cnnID;
         p.avatar.GetComponentInChildren<TextMesh>().text = playerName;
 
+        var position = p.avatar.transform.position;
+        p.oldPosition = position;
+        p.newPosition = position;
+
         if (cnnID == ourClientID)
         {
             // Remove canvas
@@ -245,12 +257,14 @@ public class Client : MonoBehaviour
             go.AddComponent<PlayerController>();
             Rigidbody rb = go.AddComponent<Rigidbody>();
             rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ | RigidbodyConstraints.FreezePositionY;
-            
+
             go.AddComponent<CapsuleCollider>();
             p.avatar.GetComponentInChildren<TextMesh>().text = ourPlayerName;
 
+            ownPlayer = p;
             isStarted = true;
         }
+
         players.Add(p);
     }
 
@@ -259,14 +273,6 @@ public class Client : MonoBehaviour
         Destroy(players.Find(x => x.connectionID == msg.cnnID).avatar);
         players.Remove(players.Find(x => x.connectionID == msg.cnnID));
     }
-
-    /* private void Send(string message, int channelID)
-     {
-         Debug.Log("Sending: " + message);
-         byte[] msg = Encoding.Unicode.GetBytes(message);
- 
-         NetworkTransport.Send(hostID, connectionID, channelID, msg, message.Length * sizeof(char), out error);
-     }*/
 
     private void SendServer(NetMessage msg)
     {
@@ -279,3 +285,4 @@ public class Client : MonoBehaviour
         NetworkTransport.Send(hostID, connectionID, reliableChannel, buffer, BYTE_SIZE, out error);
     }
 }
+#pragma warning restore 618

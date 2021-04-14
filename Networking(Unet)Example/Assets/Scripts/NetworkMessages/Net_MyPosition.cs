@@ -10,4 +10,8 @@ public class Net_MyPosition : NetMessage
     public float x;
     public float y;
     public float z;
+
+    public float dirX;
+    public float dirZ;
+    public bool isMoving;
 }

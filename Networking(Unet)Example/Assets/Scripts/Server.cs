@@ -9,6 +9,10 @@ public class ServerClient
     public int connectionID;
     public string playerName;
     public Vector3 position;
+    
+    public float dirX;
+    public float dirZ;
+    public bool isMoving;
 }
 
 public class Server : MonoBehaviour
@@ -85,25 +89,6 @@ public class Server : MonoBehaviour
                 NetMessage msg = (NetMessage) formatter.Deserialize(ms);
 
                 OnData(connectionId, channelId, recHostId, msg);
-
-                /*string msg = Encoding.Unicode.GetString(recBuffer, 0, dataSize);
-                Debug.Log("Recieving from " + connectionId + " : " + msg);
-
-                string[] splitData = msg.Split('|');
-                switch (splitData[0])
-                {
-                    case "NAMEIS":
-                        OnNameIs(connectionId,splitData[1]);
-                        break;
-
-                    case "MYPOSITION":
-                        OnMyPosition(connectionId,float.Parse(splitData[1]), float.Parse(splitData[2]));
-                        break;
-
-                    default:
-                        Debug.Log("Invalid Message: " + msg);
-                        break;
-                }*/
                 break;
 
             case NetworkEventType.DisconnectEvent:
@@ -126,7 +111,10 @@ public class Server : MonoBehaviour
                 askPosition.playerPositions[i].y = clients[i].position.y;
                 askPosition.playerPositions[i].z = clients[i].position.z;
                 askPosition.playerPositions[i].cnnID = clients[i].connectionID;
-            }
+                askPosition.playerPositions[i].dirX = clients[i].dirX;
+                askPosition.playerPositions[i].dirZ = clients[i].dirZ;
+                askPosition.playerPositions[i].isMoving = clients[i].isMoving;
+            }       
 
             Send(askPosition, clients);
         }
@@ -160,7 +148,6 @@ public class Server : MonoBehaviour
         // When player joins server, say ID
 
         // Request name, send name of all other players
-        //string msg = "ASKNAME|" + cnnID + "|";
 
         Net_AskName askName = new Net_AskName();
         askName.clientID = cnnID;
@@ -172,13 +159,9 @@ public class Server : MonoBehaviour
         {
             askName.currentPlayers[i] = clients[i].playerName;
             askName.currentIDs[i] = clients[i].connectionID;
-            //msg += sc.playerName + "%" + sc.connectionID + "|";
         }
 
-        // msg = msg.Trim('|');
-
-        //Send(msg, reliableChannel, cnnID);
-
+    
         Send(askName, cnnID);
     }
 
@@ -198,22 +181,20 @@ public class Server : MonoBehaviour
         clients.Find(x => x.connectionID == cnnID).playerName = msg.playerName;
 
         // Tell everyone new player connected
-        //Send("CNN|" + playerName + "|" + cnnID, reliableChannel, clients);
-
         Net_NewPlayerJoin newPlayerJoin = new Net_NewPlayerJoin();
         newPlayerJoin.playerName = msg.playerName;
         newPlayerJoin.cnnID = cnnID;
-
-        //var newList = clients;
-
-        //newList.Remove(clients.Find(x => x.connectionID == cnnID));
-
+        
         Send(newPlayerJoin, clients);
     }
 
     private void OnMyPosition(Net_MyPosition msg)
     {
-        clients.Find(c => c.connectionID == msg.ownID).position = new Vector3(msg.x, msg.y, msg.z);
+        ServerClient client = clients.Find(c => c.connectionID == msg.ownID);
+        client.position = new Vector3(msg.x, msg.y, msg.z);
+        client.dirX = msg.dirX;
+        client.dirZ = msg.dirZ;
+        client.isMoving = msg.isMoving;
     }
 
     private void Send(NetMessage msg, int cnnID)
