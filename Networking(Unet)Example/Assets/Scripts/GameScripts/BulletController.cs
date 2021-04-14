@@ -10,7 +10,6 @@ public class BulletController : MonoBehaviour
 	{
 		if(collision.gameObject.CompareTag("AI"))
 		{
-			Debug.Log("ENEMY");
 			collision.gameObject.GetComponent<AIController>().TakeDamage(10);
 			Destroy(gameObject);
 		}

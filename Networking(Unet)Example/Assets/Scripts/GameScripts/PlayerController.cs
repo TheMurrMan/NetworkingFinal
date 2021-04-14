@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Experimental.TerrainAPI;
+using UnityEngine.UI;
 
 public class PlayerController : MonoBehaviour
 {
@@ -13,6 +13,8 @@ public class PlayerController : MonoBehaviour
 
     public GameObject bulletPrefab;
     public Transform gunEnd;
+
+    public Slider healthbar;
     
     [SerializeField] private int playerHealth = 100;
 	private void Start()
@@ -22,14 +24,18 @@ public class PlayerController : MonoBehaviour
 
         gunEnd = transform.GetChild(2);
         bulletPrefab = Resources.Load("Bullet") as GameObject;
-        
+
+        healthbar = GetComponentInChildren<Slider>();
+
+        healthbar.maxValue = playerHealth;
 	}
 	// Update is called once per frame
 	void Update()
     {
         GetPlayerInput();
 
-        if(playerHealth <=0)
+        healthbar.value = playerHealth;
+        if (playerHealth <=0)
 		{
             Debug.Log("DIE");
             //Die();

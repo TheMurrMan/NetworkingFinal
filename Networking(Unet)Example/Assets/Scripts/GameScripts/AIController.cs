@@ -1,15 +1,20 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 public class AIController : MonoBehaviour
 {
     [SerializeField] int enemySpeed;
     [SerializeField] int enemyHealth;
     [SerializeField] int attackRange;
     [SerializeField] int enemyDamage = 10;
-    [SerializeField] float attackTimer = 2;
-    [SerializeField] PlayerController closestPlayer;
+    [SerializeField] float attackTimer = 0;
+    [SerializeField] float resetAttackTimer = 0.5f;
+
+    PlayerController closestPlayer;
     public AIState state;
+    private Slider healthBar;
+
     public enum AIState
     {
         Idle,
@@ -22,13 +27,17 @@ public class AIController : MonoBehaviour
     {
         state = AIState.Walking;
         GetClosestPlayer();
+
+        healthBar = GetComponentInChildren<Slider>();
+        healthBar.maxValue = enemyHealth;
     }
 
     // Update is called once per frame
     void Update()
     {
+        healthBar.value = enemyHealth;
         if (attackTimer <= 0)
-            attackTimer = 2;
+            attackTimer = resetAttackTimer;
 
         if(closestPlayer == null)
 		{
@@ -37,12 +46,6 @@ public class AIController : MonoBehaviour
 
         switch(state)
 		{
-            case AIState.Idle:
-                {
-                  IdleState();
-                }
-                break;
-
             case AIState.Walking:
                 {
                    WalkingState();
@@ -61,14 +64,11 @@ public class AIController : MonoBehaviour
 
         if(enemyHealth <= 0)
 		{
+            GameManager.instance.IncreaseScore(10);
             Destroy(gameObject);
 		}
     }
 
-    void IdleState()
-	{
-        Debug.Log("Idle");
-	}
     void WalkingState()
     {
         Debug.Log("Walking State");
