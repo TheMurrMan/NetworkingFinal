@@ -5,8 +5,9 @@ public class AIController : MonoBehaviour
 {
     [SerializeField] int enemySpeed;
     [SerializeField] int enemyHealth;
+    [SerializeField] int attackRange;
     [SerializeField] int enemyDamage = 10;
-
+    [SerializeField] float attackTimer = 2;
     [SerializeField] PlayerController closestPlayer;
     public AIState state;
     public enum AIState
@@ -26,6 +27,9 @@ public class AIController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (attackTimer <= 0)
+            attackTimer = 2;
+
         if(closestPlayer == null)
 		{
             GetClosestPlayer();
@@ -34,30 +38,30 @@ public class AIController : MonoBehaviour
         switch(state)
 		{
             case AIState.Idle:
-            {
-              IdleState();
-            }
-            break;
+                {
+                  IdleState();
+                }
+                break;
 
             case AIState.Walking:
-            {
-               WalkingState();
-            }
-            break;
+                {
+                   WalkingState();
+                }
+                break;
             
             case AIState.Attacking:
-			{
-               AttackinState();
-		    }
-            break;
+			    {
+                   AttackinState();
+		        }
+                break;
 
             default:
                 break;
 		}
 
-        if(enemyHealth <=0)
+        if(enemyHealth <= 0)
 		{
-            Destroy(this.gameObject);
+            Destroy(gameObject);
 		}
     }
 
@@ -68,7 +72,7 @@ public class AIController : MonoBehaviour
     void WalkingState()
     {
         Debug.Log("Walking State");
-        if (Vector3.Distance(transform.position, closestPlayer.transform.position) > 1)
+        if (Vector3.Distance(transform.position, closestPlayer.transform.position) > 2)
 		{
             HandleMovement();
 		}
@@ -84,17 +88,26 @@ public class AIController : MonoBehaviour
     void AttackinState()
     {
         Debug.Log("Attacking State");
-        if (Vector3.Distance(transform.position, closestPlayer.transform.position) < 10)
+        if (Vector3.Distance(transform.position, closestPlayer.transform.position) <= attackRange)
         {
-            Debug.Log("Attack");
-            closestPlayer.GetComponent<PlayerController>().TakeDamage(enemyDamage);
+
+            if (attackTimer > 0f)
+            {
+                attackTimer -= Time.deltaTime;
+                if (attackTimer <= 0f)
+                {
+                    Debug.Log("Attack");
+                    attackTimer = 0f;
+                    closestPlayer.GetComponent<PlayerController>().TakeDamage(enemyDamage);
+                }
+            }
         }
 
         else
-		{
+        {
             state = AIState.Walking;
             Debug.Log("Continue Walking");
-		}
+        }
     }
 
     void HandleMovement()

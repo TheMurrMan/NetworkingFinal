@@ -462,6 +462,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 5610906448441996045, guid: fd059ae9a5641654796f9e350dea4e18, type: 3}
+      propertyPath: m_Constraints
+      value: 116
+      objectReference: {fileID: 0}
     - target: {fileID: 8591436616315193952, guid: fd059ae9a5641654796f9e350dea4e18, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -556,4 +560,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   aiPrefab: {fileID: 3182429418483026591, guid: c9d298f78c3ec2847a02477c5d8407e4, type: 3}
-  numUnitToSpawn: 3
+  numUnitToSpawn: 1

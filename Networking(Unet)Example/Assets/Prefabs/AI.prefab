@@ -110,6 +110,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   enemySpeed: 1
   enemyHealth: 100
+  attackRange: 5
   enemyDamage: 5
   closestPlayer: {fileID: 0}
   state: 0

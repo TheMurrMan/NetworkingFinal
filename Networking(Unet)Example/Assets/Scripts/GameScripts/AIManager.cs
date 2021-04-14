@@ -25,11 +25,13 @@ public class AIManager : MonoBehaviour
 
     void SpawnAI()
 	{
-        Vector3 newPos  = new Vector3(Random.Range(-10, 10), 0.25f, Random.Range(-10, 10));
+        Vector3 newPos;
 
         for (int i = 0; i < numUnitToSpawn; ++i)
         {
-            GameObject newAI = Instantiate(aiPrefab, newPos, Quaternion.identity);
+            GameObject newAI = Instantiate(aiPrefab);
+            newPos = new Vector3(Random.Range(-10, 10), 0.25f, Random.Range(-10, 10));
+            newAI.transform.position = newPos;
             aiList.Add(newAI);
         }
     }
