@@ -73,7 +73,9 @@ public class PlayerController : MonoBehaviour
 
     void SpawnBullet()
 	{
-        Instantiate(bulletPrefab, gunEnd.position, gunEnd.rotation);
+        GameObject g = Instantiate(bulletPrefab, gunEnd.position, gunEnd.rotation);
+        Client.m_Instance.OnBulletSpawn(g);
+
 	}
 
     void Die()

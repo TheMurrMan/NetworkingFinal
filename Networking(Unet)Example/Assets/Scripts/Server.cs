@@ -133,9 +133,19 @@ public class Server : MonoBehaviour
             case NetCode.MyPosition:
                 OnMyPosition((Net_MyPosition) msg);
                 break;
+            case NetCode.SpawnBullet:
+                OnSpawnBullet((Net_SpawnBullet)msg);
+                break;
+                
         }
     }
 
+    private void OnSpawnBullet(Net_SpawnBullet msg)
+    {
+        //Send the packet to all other clients
+        
+    }
+    
     private void OnConnection(int cnnID)
     {
         // Add him to list

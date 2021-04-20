@@ -22,6 +22,26 @@ public class Player
 
 public class Client : MonoBehaviour
 {
+    private static Client _instance;
+
+    public static Client m_Instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                _instance = FindObjectOfType<Client>();
+            }
+
+            return _instance;
+        }
+    }
+
+    private void Awake()
+    {
+        DontDestroyOnLoad(gameObject);
+    }
+
     private const int MAX_CONNECTION = 100;
     private const int PORT = 5701;
     private const int BYTE_SIZE = 1024;
@@ -274,6 +294,25 @@ public class Client : MonoBehaviour
         players.Remove(players.Find(x => x.connectionID == msg.cnnID));
     }
 
+    public void OnBulletSpawn(GameObject bullet)
+    {
+        Vector3 vec = bullet.transform.position;
+        Vector3 dir = bullet.transform.forward;
+        //Send over spawn position and direction
+        Net_SpawnBullet msg = new Net_SpawnBullet
+        {
+            ownerID = ourClientID,
+            x = vec.x,
+            y = vec.y,
+            z = vec.z,
+            xDir = dir.x,
+            zDir = dir.z
+        };
+        
+        SendServer(msg);
+        
+    }
+    
     private void SendServer(NetMessage msg)
     {
         byte[] buffer = new byte[BYTE_SIZE];
