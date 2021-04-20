@@ -8,6 +8,11 @@
     public const int MyPosition = 5;
     public const int Disconnect = 6;
     public const int SpawnBullet = 7;
+    public const int SpawnEnemy = 8;
+    public const int MyHealth = 9;
+    public const int AskHealth = 10;
+    public const int MyScore = 11;
+    public const int AskScore = 12;
 }
 
 
