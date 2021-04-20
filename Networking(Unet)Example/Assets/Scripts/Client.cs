@@ -22,7 +22,7 @@ public class Player
 
 public class Client : MonoBehaviour
 {
-    private static Client _instance;
+   /* private static Client _instance;
 
     public static Client m_Instance
     {
@@ -35,7 +35,7 @@ public class Client : MonoBehaviour
 
             return _instance;
         }
-    }
+    }*/
 
     private void Awake()
     {
@@ -179,9 +179,25 @@ public class Client : MonoBehaviour
             case NetCode.Disconnect:
                 PlayerDisconnected((Net_Disconnect) msg);
                 break;
+            case NetCode.SpawnBullet:
+                OnSpawnBullet((Net_SpawnBullet)msg);
+                break;
+                
         }
     }
 
+
+    private void OnSpawnBullet(Net_SpawnBullet msg)
+    {
+        Debug.Log("BulletSpawn Message Recieved");
+
+        Vector3 pos = new Vector3(msg.x, msg.y, msg.z);
+        Vector3 dir = new Vector3(msg.xDir, 0f, msg.zDir);
+        
+        GameObject g = Instantiate(FindObjectOfType<PlayerController>().bulletPrefab, pos, Quaternion.identity);
+        g.transform.forward = dir;
+        Destroy(g.GetComponent<Collider>());
+    }
 
     private void OnNewPlayer(Net_NewPlayerJoin msg)
     {
@@ -309,6 +325,7 @@ public class Client : MonoBehaviour
             zDir = dir.z
         };
         
+        Debug.Log("BulletSpawn Message Sent");
         SendServer(msg);
         
     }

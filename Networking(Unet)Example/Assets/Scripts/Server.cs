@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿#pragma warning disable 618
+
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using UnityEngine;
@@ -142,8 +144,10 @@ public class Server : MonoBehaviour
 
     private void OnSpawnBullet(Net_SpawnBullet msg)
     {
-        //Send the packet to all other clients
+      //Spawn Bullets in server scene
+      //Send Positions back to everyone
         
+        Send(msg, clients);
     }
     
     private void OnConnection(int cnnID)
@@ -201,6 +205,8 @@ public class Server : MonoBehaviour
     private void OnMyPosition(Net_MyPosition msg)
     {
         ServerClient client = clients.Find(c => c.connectionID == msg.ownID);
+       // Debug.Log(client.connectionID);
+        //Debug.Log(msg.ownID);
         client.position = new Vector3(msg.x, msg.y, msg.z);
         client.dirX = msg.dirX;
         client.dirZ = msg.dirZ;
@@ -228,3 +234,4 @@ public class Server : MonoBehaviour
         }
     }
 }
+#pragma warning enable 618
