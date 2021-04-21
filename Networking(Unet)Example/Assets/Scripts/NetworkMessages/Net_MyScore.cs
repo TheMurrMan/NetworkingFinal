@@ -8,5 +8,5 @@ public class Net_MyScore : NetMessage
 
     public int ownID;
 
-    public float score;
+    public int score;
 }

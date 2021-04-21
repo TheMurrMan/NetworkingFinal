@@ -62,6 +62,8 @@ public class Client : MonoBehaviour
     private byte error;
 
     private string ourPlayerName;
+    private int ourScore;
+    private int ourHealth;
 
     public GameObject playerPrefab;
     public Player ownPlayer;
@@ -138,6 +140,29 @@ public class Client : MonoBehaviour
         }
     }
 
+    private void UpdateOtherPlayersHealth()
+	{
+        foreach (Player p in players)
+        {
+            //Don't update ourself
+            if (p.connectionID == ourClientID) continue;
+
+            if (updateTime > 0f)
+            {
+                updateTime -= Time.deltaTime;
+                
+            }
+        }
+    }
+    private void UpdateOtherPlayersScore()
+    {
+        foreach (Player p in players)
+        {
+            //Don't update ourself
+            if (p.connectionID == ourClientID) continue;
+        }
+    }
+
     private void RecievePackets()
     {
         int recHostId;
@@ -186,10 +211,28 @@ public class Client : MonoBehaviour
             case NetCode.SpawnEnemy:
                 OnSpawnEnemy((Net_SpawnEnemy)msg);
                 break;
-                
+            case NetCode.AskHealth:
+                OnAskHealth((Net_AskHealth)msg);
+                break;
+            case NetCode.AskScore:
+                OnAskScore((Net_AskScore)msg);
+                break;
         }
     }
 
+    private void OnAskScore(Net_AskScore msg)
+	{
+        ourClientID = msg.ownID;
+        msg.score = ourScore;
+	}
+
+    private void OnAskHealth(Net_AskHealth msg)
+    {
+        ourClientID = msg.ownID;
+        msg.health = ourHealth;
+
+        SendServer(msg);
+    }
 
     private void OnSpawnBullet(Net_SpawnBullet msg)
     {
@@ -206,6 +249,7 @@ public class Client : MonoBehaviour
     private void OnSpawnEnemy(Net_SpawnEnemy msg)
 	{
         GameObject enemy = Resources.Load("AI") as GameObject;
+        Instantiate(enemy);
         enemy.transform.position = new Vector3(msg.x, msg.y, msg.z);
         enemies.Add(msg.enemyID, enemy);
 	}

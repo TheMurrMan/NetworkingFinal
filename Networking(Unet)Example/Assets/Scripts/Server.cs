@@ -13,6 +13,8 @@ public class ServerClient
     public string playerName;
     public Vector3 position;
 
+    public int health;
+    public int score;
     public float dirX;
     public float dirZ;
     public bool isMoving;
@@ -172,6 +174,12 @@ public class Server : MonoBehaviour
             case NetCode.SpawnBullet:
                 OnSpawnBullet((Net_SpawnBullet) msg);
                 break;
+            case NetCode.MyHealth:
+                OnMyHealth((Net_MyHealth)msg);
+                break;
+            case NetCode.MyScore:
+                OnMyScore((Net_MyScore)msg);
+                break;
         }
     }
 
@@ -242,7 +250,17 @@ public class Server : MonoBehaviour
         Send(msg, clients);
     }
 
+    public void OnMyHealth(Net_MyHealth msg)
+    {
+        ServerClient client = clients.Find(c => c.connectionID == msg.ownID);
+        client.health = msg.health;
+    }
 
+    public void OnMyScore(Net_MyScore msg)
+    {
+        ServerClient client = clients.Find(c => c.connectionID == msg.ownID);
+        client.score = msg.score;
+    }
     private void OnDisconnection(int cnnID)
     {
         // remove this player from list
