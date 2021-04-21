@@ -27,7 +27,7 @@ public class AIManager : MonoBehaviour
     public float waveCountdown;
     private float searchCountdown = 1f;
     private SpawnState state = SpawnState.Counting;
-    List<GameObject> aiList;
+    public List<GameObject> aiList;
 
 	// Start is called before the first frame update
 	void Start()

@@ -1,5 +1,6 @@
 ﻿#pragma warning disable 618
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -11,7 +12,7 @@ public class ServerClient
     public int connectionID;
     public string playerName;
     public Vector3 position;
-    
+
     public float dirX;
     public float dirZ;
     public bool isMoving;
@@ -41,6 +42,13 @@ public class Server : MonoBehaviour
 
     private float lastMovementUpdate;
     private float movementUpdateRate = 0.1f;
+
+    private AIManager AIManager;
+
+    private void Awake()
+    {
+        AIManager = FindObjectOfType<AIManager>();
+    }
 
     private void Start()
     {
@@ -104,8 +112,12 @@ public class Server : MonoBehaviour
         {
             lastMovementUpdate = Time.time;
 
-            Net_AskPosition askPosition = new Net_AskPosition();
-            askPosition.playerPositions = new Net_AskPosition.position[clients.Count + 1];
+            //Sending Player Position
+
+            Net_AskPosition askPosition = new Net_AskPosition
+            {
+                playerPositions = new Net_AskPosition.position[clients.Count + 1]
+            };
 
             for (int i = 0; i < clients.Count; i++)
             {
@@ -116,9 +128,31 @@ public class Server : MonoBehaviour
                 askPosition.playerPositions[i].dirX = clients[i].dirX;
                 askPosition.playerPositions[i].dirZ = clients[i].dirZ;
                 askPosition.playerPositions[i].isMoving = clients[i].isMoving;
-            }       
+            }
 
             Send(askPosition, clients);
+
+            //Sending Enemy Position
+            Net_UpdateEnemyPosition enemyPosition = new Net_UpdateEnemyPosition
+            {
+                enemies = new Net_UpdateEnemyPosition.position[AIManager.aiList.Count + 1]
+            };
+
+            for (int i = 0; i < AIManager.aiList.Count; i++)
+            {
+                GameObject e = AIManager.aiList[i];
+                Vector3 pos = e.transform.position;
+                Vector3 forward = e.transform.forward;
+
+                enemyPosition.enemies[i].enemyID = e.GetComponent<AIController>().myId;
+                enemyPosition.enemies[i].x = pos.x;
+                enemyPosition.enemies[i].y = pos.y;
+                enemyPosition.enemies[i].z = pos.z;
+                enemyPosition.enemies[i].xDir = forward.x;
+                enemyPosition.enemies[i].zDir = forward.z;
+            }
+            
+            Send(enemyPosition, clients);
         }
     }
 
@@ -136,20 +170,19 @@ public class Server : MonoBehaviour
                 OnMyPosition((Net_MyPosition) msg);
                 break;
             case NetCode.SpawnBullet:
-                OnSpawnBullet((Net_SpawnBullet)msg);
+                OnSpawnBullet((Net_SpawnBullet) msg);
                 break;
-                
         }
     }
 
     private void OnSpawnBullet(Net_SpawnBullet msg)
     {
-      //Spawn Bullets in server scene
-      //Send Positions back to everyone
-        
+        //Spawn Bullets in server scene
+        //Send Positions back to everyone
+
         Send(msg, clients);
     }
-    
+
     private void OnConnection(int cnnID)
     {
         // Add him to list
@@ -175,9 +208,9 @@ public class Server : MonoBehaviour
             askName.currentIDs[i] = clients[i].connectionID;
         }
 
-        
-        if(clients.Count >= 2)
-		{
+
+        if (clients.Count >= 2)
+        {
             CreateAIManager();
         }
 
@@ -185,12 +218,12 @@ public class Server : MonoBehaviour
     }
 
     private void CreateAIManager()
-	{
+    {
         Instantiate(Resources.Load("AIManager") as GameObject);
-	}
+    }
 
     public void SpawnEnemy(GameObject enemy)
-	{
+    {
         Vector3 vec = enemy.transform.position;
         Vector3 dir = enemy.transform.forward;
 
@@ -209,7 +242,7 @@ public class Server : MonoBehaviour
         Send(msg, clients);
     }
 
-    
+
     private void OnDisconnection(int cnnID)
     {
         // remove this player from list
@@ -229,14 +262,14 @@ public class Server : MonoBehaviour
         Net_NewPlayerJoin newPlayerJoin = new Net_NewPlayerJoin();
         newPlayerJoin.playerName = msg.playerName;
         newPlayerJoin.cnnID = cnnID;
-        
+
         Send(newPlayerJoin, clients);
     }
 
     private void OnMyPosition(Net_MyPosition msg)
     {
         ServerClient client = clients.Find(c => c.connectionID == msg.ownID);
-       // Debug.Log(client.connectionID);
+        // Debug.Log(client.connectionID);
         //Debug.Log(msg.ownID);
         client.position = new Vector3(msg.x, msg.y, msg.z);
         client.dirX = msg.dirX;

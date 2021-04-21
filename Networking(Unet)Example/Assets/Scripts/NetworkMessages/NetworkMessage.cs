@@ -13,6 +13,7 @@
     public const int AskHealth = 10;
     public const int MyScore = 11;
     public const int AskScore = 12;
+    public const int UpdateEnemyPosition = 13;
 }
 
 
