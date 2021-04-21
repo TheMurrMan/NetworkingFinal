@@ -23,6 +23,7 @@ public class AIManager : MonoBehaviour
     private int nextWave = 0;
     public float timeBetweenWaves = 5f;
 
+    int managerId;
     public float waveCountdown;
     private float searchCountdown = 1f;
     private SpawnState state = SpawnState.Counting;
@@ -122,6 +123,10 @@ public class AIManager : MonoBehaviour
         GameObject newAI = Instantiate(enemy);
         newPos = new Vector3(Random.Range(-10, 10), 0.25f, Random.Range(-10, 10));
         newAI.transform.position = newPos;
+        newAI.GetComponent<AIController>().myId = managerId;
         aiList.Add(newAI);
+        managerId++;
+
+        FindObjectOfType<Server>().SpawnEnemy(newAI);
     }
 }

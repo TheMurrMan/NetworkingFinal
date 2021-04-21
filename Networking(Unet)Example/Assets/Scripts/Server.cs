@@ -37,7 +37,7 @@ public class Server : MonoBehaviour
 
     private byte error;
 
-    private List<ServerClient> clients = new List<ServerClient>();
+    public List<ServerClient> clients = new List<ServerClient>();
 
     private float lastMovementUpdate;
     private float movementUpdateRate = 0.1f;
@@ -175,10 +175,41 @@ public class Server : MonoBehaviour
             askName.currentIDs[i] = clients[i].connectionID;
         }
 
-    
+        
+        if(clients.Count >= 2)
+		{
+            CreateAIManager();
+        }
+
         Send(askName, cnnID);
     }
 
+    private void CreateAIManager()
+	{
+        Instantiate(Resources.Load("AIManager") as GameObject);
+	}
+
+    public void SpawnEnemy(GameObject enemy)
+	{
+        Vector3 vec = enemy.transform.position;
+        Vector3 dir = enemy.transform.forward;
+
+        //Send over spawn position and direction
+        Net_SpawnEnemy msg = new Net_SpawnEnemy
+        {
+            enemyID = enemy.GetComponent<AIController>().myId,
+            x = vec.x,
+            y = vec.y,
+            z = vec.z,
+            xDir = dir.x,
+            zDir = dir.z
+        };
+
+        Debug.Log("Enemy Spawn Message Sent");
+        Send(msg, clients);
+    }
+
+    
     private void OnDisconnection(int cnnID)
     {
         // remove this player from list

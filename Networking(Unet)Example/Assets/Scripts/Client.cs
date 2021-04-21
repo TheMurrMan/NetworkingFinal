@@ -69,6 +69,7 @@ public class Client : MonoBehaviour
     private float updateTime;
 
     [SerializeField] public List<Player> players = new List<Player>();
+    [SerializeField] public Dictionary<int, GameObject> enemies = new Dictionary<int, GameObject>();
 
     public void Connect()
     {
@@ -182,6 +183,9 @@ public class Client : MonoBehaviour
             case NetCode.SpawnBullet:
                 OnSpawnBullet((Net_SpawnBullet)msg);
                 break;
+            case NetCode.SpawnEnemy:
+                OnSpawnEnemy((Net_SpawnEnemy)msg);
+                break;
                 
         }
     }
@@ -198,6 +202,13 @@ public class Client : MonoBehaviour
         g.transform.forward = dir;
         Destroy(g.GetComponent<Collider>());
     }
+
+    private void OnSpawnEnemy(Net_SpawnEnemy msg)
+	{
+        GameObject enemy = Resources.Load("AI") as GameObject;
+        enemy.transform.position = new Vector3(msg.x, msg.y, msg.z);
+        enemies.Add(msg.enemyID, enemy);
+	}
 
     private void OnNewPlayer(Net_NewPlayerJoin msg)
     {

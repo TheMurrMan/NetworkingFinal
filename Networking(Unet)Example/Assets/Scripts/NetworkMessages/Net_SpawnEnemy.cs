@@ -7,7 +7,7 @@ public class Net_SpawnEnemy : NetMessage
     }
 
     //So we know who the owner is
-    public int ownerID;
+    public int enemyID;
 
     //Position
     public float x;

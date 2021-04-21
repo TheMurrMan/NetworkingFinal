@@ -11,7 +11,8 @@ public class AIController : MonoBehaviour
     [SerializeField] float attackTimer = 0;
     [SerializeField] float resetAttackTimer = 0.5f;
 
-    PlayerController closestPlayer;
+    public int myId; 
+    ServerClient closestPlayer;
     public AIState state;
     private Slider healthBar;
 
@@ -72,7 +73,7 @@ public class AIController : MonoBehaviour
     void WalkingState()
     {
         Debug.Log("Walking State");
-        if (Vector3.Distance(transform.position, closestPlayer.transform.position) > 2)
+        if (Vector3.Distance(transform.position, closestPlayer.position) > 2)
 		{
             HandleMovement();
 		}
@@ -88,7 +89,7 @@ public class AIController : MonoBehaviour
     void AttackinState()
     {
         Debug.Log("Attacking State");
-        if (Vector3.Distance(transform.position, closestPlayer.transform.position) <= attackRange)
+        if (Vector3.Distance(transform.position, closestPlayer.position) <= attackRange)
         {
 
             if (attackTimer > 0f)
@@ -98,7 +99,7 @@ public class AIController : MonoBehaviour
                 {
                     Debug.Log("Attack");
                     attackTimer = 0f;
-                    closestPlayer.GetComponent<PlayerController>().TakeDamage(enemyDamage);
+                    //closestPlayer.GetComponent<PlayerController>().TakeDamage(enemyDamage);
                 }
             }
         }
@@ -112,7 +113,7 @@ public class AIController : MonoBehaviour
 
     void HandleMovement()
 	{
-        Vector3 targetPos = closestPlayer.transform.position;
+        Vector3 targetPos = closestPlayer.position;
         Vector3 currentPos = transform.position;
 
         if (Vector3.Distance(currentPos, targetPos) >= 0.15f)
@@ -134,14 +135,15 @@ public class AIController : MonoBehaviour
     {
         closestPlayer = null;
         float distanceToClosestPlayer = Mathf.Infinity;
-        PlayerController[] players = FindObjectsOfType<PlayerController>();
-        foreach (PlayerController player in players)
+
+        List<ServerClient> clients = FindObjectOfType<Server>().clients;
+        foreach (ServerClient client in clients)
         {
-            float distanceToPlayer = (player.transform.position - transform.position).sqrMagnitude;
+            float distanceToPlayer = (client.position - transform.position).sqrMagnitude;
             if (distanceToPlayer < distanceToClosestPlayer)
             {
                 distanceToClosestPlayer = distanceToPlayer;
-                closestPlayer = player;
+                closestPlayer = client;
             }
         }
     }
@@ -161,7 +163,7 @@ public class AIController : MonoBehaviour
         return state;
     }
 
-    public PlayerController ReturnClosestPlayer()
+    public ServerClient ReturnClosestPlayer()
 	{
         return closestPlayer;
 	}
