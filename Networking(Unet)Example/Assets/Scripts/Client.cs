@@ -20,22 +20,32 @@ public class Player
     public Vector3 dir;
 }
 
+[Serializable]
+public class Enemy
+{
+    public GameObject enemy;
+    public Vector3 oldPosition;
+    public Vector3 newPosition;
+    public Vector3 dir;
+    public bool isMoving = false;
+}
+
 public class Client : MonoBehaviour
 {
-   /* private static Client _instance;
-
-    public static Client m_Instance
-    {
-        get
-        {
-            if (_instance == null)
-            {
-                _instance = FindObjectOfType<Client>();
-            }
-
-            return _instance;
-        }
-    }*/
+    /* private static Client _instance;
+ 
+     public static Client m_Instance
+     {
+         get
+         {
+             if (_instance == null)
+             {
+                 _instance = FindObjectOfType<Client>();
+             }
+ 
+             return _instance;
+         }
+     }*/
 
     private void Awake()
     {
@@ -69,7 +79,7 @@ public class Client : MonoBehaviour
     private float updateTime;
 
     [SerializeField] public List<Player> players = new List<Player>();
-    [SerializeField] public Dictionary<int, GameObject> enemies = new Dictionary<int, GameObject>();
+    [SerializeField] public Dictionary<int, Enemy> enemies = new Dictionary<int, Enemy>();
 
     public void Connect()
     {
@@ -181,34 +191,46 @@ public class Client : MonoBehaviour
                 PlayerDisconnected((Net_Disconnect) msg);
                 break;
             case NetCode.SpawnBullet:
-                OnSpawnBullet((Net_SpawnBullet)msg);
+                OnSpawnBullet((Net_SpawnBullet) msg);
                 break;
             case NetCode.SpawnEnemy:
-                OnSpawnEnemy((Net_SpawnEnemy)msg);
+                OnSpawnEnemy((Net_SpawnEnemy) msg);
                 break;
-                
+            case NetCode.UpdateEnemyPosition:
+                UpdateEnemyPositions((Net_UpdateEnemyPosition) msg);
+                break;
         }
     }
 
-
+    private void UpdateEnemyPositions(Net_UpdateEnemyPosition msg)
+    {
+        for (int i = 0; i < msg.enemies.Length; i++)
+        {
+            Vector3 pos = new Vector3(msg.enemies[i].x, msg.enemies[i].y, msg.enemies[i].z);
+            Vector3 dir = new Vector3(msg.enemies[i].xDir, 0f, msg.enemies[i].zDir);
+            
+            
+            
+        }
+    }
     private void OnSpawnBullet(Net_SpawnBullet msg)
     {
         Debug.Log("BulletSpawn Message Recieved");
 
         Vector3 pos = new Vector3(msg.x, msg.y, msg.z);
         Vector3 dir = new Vector3(msg.xDir, 0f, msg.zDir);
-        
+
         GameObject g = Instantiate(FindObjectOfType<PlayerController>().bulletPrefab, pos, Quaternion.identity);
         g.transform.forward = dir;
         Destroy(g.GetComponent<Collider>());
     }
 
     private void OnSpawnEnemy(Net_SpawnEnemy msg)
-	{
+    {
         GameObject enemy = Resources.Load("AI") as GameObject;
         enemy.transform.position = new Vector3(msg.x, msg.y, msg.z);
         enemies.Add(msg.enemyID, enemy);
-	}
+    }
 
     private void OnNewPlayer(Net_NewPlayerJoin msg)
     {
@@ -248,7 +270,7 @@ public class Client : MonoBehaviour
         for (int i = 0; i < msg.playerPositions.Length; ++i)
         {
             if (ourClientID == msg.playerPositions[i].cnnID) continue;
-
+            
             Vector3 pos = new Vector3(msg.playerPositions[i].x, msg.playerPositions[i].y, msg.playerPositions[i].z);
             Player p = players.Find(x => x.connectionID == msg.playerPositions[i].cnnID);
 
@@ -271,13 +293,13 @@ public class Client : MonoBehaviour
         Vector3 myPos = ownPlayer.avatar.transform.position;
 
         Vector3 movement = ownPlayer.avatar.GetComponent<PlayerController>().movement;
-        
+
         Net_MyPosition myPosition = new Net_MyPosition
             {ownID = ourClientID, x = myPos.x, y = myPos.y, z = myPos.z, dirX = movement.x, dirZ = movement.z, isMoving = true};
 
         if (movement == Vector3.zero)
             myPosition.isMoving = false;
-        
+
         // Debug.Log(movement);
 
         SendServer(myPosition);
@@ -335,12 +357,11 @@ public class Client : MonoBehaviour
             xDir = dir.x,
             zDir = dir.z
         };
-        
+
         Debug.Log("BulletSpawn Message Sent");
         SendServer(msg);
-        
     }
-    
+
     private void SendServer(NetMessage msg)
     {
         byte[] buffer = new byte[BYTE_SIZE];
