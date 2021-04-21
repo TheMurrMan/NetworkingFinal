@@ -72,6 +72,8 @@ public class AIManager : MonoBehaviour
         {
             SpawnWave(waves[nextWave]);
         }
+
+        RemoveDeadAIFromList();
     }
 
     void WaveCompleted()
@@ -129,4 +131,15 @@ public class AIManager : MonoBehaviour
 
         FindObjectOfType<Server>().SpawnEnemy(newAI);
     }
+
+    void RemoveDeadAIFromList()
+	{
+        foreach(GameObject ai in aiList)
+		{
+            if(ai.GetComponent<AIController>().GetHealth() <= 0)
+			{
+                aiList.Remove(ai);
+			}
+		}
+	}
 }
