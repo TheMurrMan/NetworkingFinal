@@ -20,22 +20,32 @@ public class Player
     public Vector3 dir;
 }
 
+[Serializable]
+public class Enemy
+{
+    public GameObject enemy;
+    public Vector3 oldPosition;
+    public Vector3 newPosition;
+    public Vector3 dir;
+    public bool isMoving = false;
+}
+
 public class Client : MonoBehaviour
 {
-   /* private static Client _instance;
-
-    public static Client m_Instance
-    {
-        get
-        {
-            if (_instance == null)
-            {
-                _instance = FindObjectOfType<Client>();
-            }
-
-            return _instance;
-        }
-    }*/
+    /* private static Client _instance;
+ 
+     public static Client m_Instance
+     {
+         get
+         {
+             if (_instance == null)
+             {
+                 _instance = FindObjectOfType<Client>();
+             }
+ 
+             return _instance;
+         }
+     }*/
 
     private void Awake()
     {
@@ -45,7 +55,7 @@ public class Client : MonoBehaviour
     private const int MAX_CONNECTION = 100;
     private const int PORT = 5701;
     private const int BYTE_SIZE = 1024;
-
+    private const int ENEMY_MOVE_SPEED = 1;
     private int hostID;
 
     private int webHostID;
@@ -68,10 +78,12 @@ public class Client : MonoBehaviour
     public GameObject playerPrefab;
     public Player ownPlayer;
 
+    private float updatePositionTime;
+    private float updateEnemyTime;
     private float updateTime;
 
     [SerializeField] public List<Player> players = new List<Player>();
-    [SerializeField] public Dictionary<int, GameObject> enemies = new Dictionary<int, GameObject>();
+    [SerializeField] public Dictionary<int, Enemy> enemies = new Dictionary<int, Enemy>();
 
     public void Connect()
     {
@@ -115,8 +127,9 @@ public class Client : MonoBehaviour
         RecievePackets();
 
         UpdateOtherPlayerPosition();
+        UpdateEnemyPosition();
     }
-
+    
     private void UpdateOtherPlayerPosition()
     {
         foreach (Player p in players)
@@ -124,9 +137,9 @@ public class Client : MonoBehaviour
             //Don't update ourself
             if (p.connectionID == ourClientID) continue;
 
-            if (updateTime > 0f)
+            if (updatePositionTime > 0f)
             {
-                updateTime -= Time.deltaTime;
+                updatePositionTime -= Time.deltaTime;
                 p.avatar.transform.position = Vector3.Lerp(p.oldPosition, p.newPosition, .1f);
             }
             else if (p.isMoving)
@@ -136,6 +149,22 @@ public class Client : MonoBehaviour
                 // Assume the players never change speed and they are using the same speed 
 
                 p.avatar.transform.position += p.dir * (ownPlayer.avatar.GetComponent<PlayerController>().moveSpeed * Time.deltaTime);
+            }
+        }
+    }
+
+    private void UpdateEnemyPosition()
+    {
+        foreach (var e in enemies)
+        {
+            if (updateEnemyTime > 0f)
+            {
+                updateEnemyTime -= Time.deltaTime;
+                e.Value.enemy.transform.position = Vector3.Lerp(e.Value.oldPosition, e.Value.newPosition, .1f);
+            }
+            else if (e.Value.isMoving)
+            {
+                e.Value.enemy.transform.position += e.Value.dir * (ENEMY_MOVE_SPEED * Time.deltaTime);
             }
         }
     }
@@ -206,10 +235,13 @@ public class Client : MonoBehaviour
                 PlayerDisconnected((Net_Disconnect) msg);
                 break;
             case NetCode.SpawnBullet:
-                OnSpawnBullet((Net_SpawnBullet)msg);
+                OnSpawnBullet((Net_SpawnBullet) msg);
                 break;
             case NetCode.SpawnEnemy:
-                OnSpawnEnemy((Net_SpawnEnemy)msg);
+                OnSpawnEnemy((Net_SpawnEnemy) msg);
+                break;
+            case NetCode.UpdateEnemyPosition:
+                UpdateEnemyPositions((Net_UpdateEnemyPosition) msg);
                 break;
             case NetCode.AskHealth:
                 OnAskHealth((Net_AskHealth)msg);
@@ -233,26 +265,54 @@ public class Client : MonoBehaviour
 
         SendServer(msg);
     }
+    
+    private void UpdateEnemyPositions(Net_UpdateEnemyPosition msg)
+    {
+        for (int i = 0; i < msg.enemies.Length; i++)
+        {
+            Vector3 pos = new Vector3(msg.enemies[i].x, msg.enemies[i].y, msg.enemies[i].z);
+            Vector3 dir = new Vector3(msg.enemies[i].xDir, 0f, msg.enemies[i].zDir);
 
+            Enemy e = enemies[msg.enemies[i].enemyID];
+
+            e.oldPosition = e.newPosition;
+            e.enemy.transform.position = e.oldPosition;
+            e.newPosition = pos;
+            e.dir = dir;
+
+            e.isMoving = msg.enemies[i].isMoving;
+            updateEnemyTime = 0.1f;
+
+        }
+    }
     private void OnSpawnBullet(Net_SpawnBullet msg)
     {
         Debug.Log("BulletSpawn Message Recieved");
 
         Vector3 pos = new Vector3(msg.x, msg.y, msg.z);
         Vector3 dir = new Vector3(msg.xDir, 0f, msg.zDir);
-        
+
         GameObject g = Instantiate(FindObjectOfType<PlayerController>().bulletPrefab, pos, Quaternion.identity);
         g.transform.forward = dir;
         Destroy(g.GetComponent<Collider>());
     }
 
     private void OnSpawnEnemy(Net_SpawnEnemy msg)
-	{
+    {
         GameObject enemy = Resources.Load("AI") as GameObject;
         Instantiate(enemy);
         enemy.transform.position = new Vector3(msg.x, msg.y, msg.z);
-        enemies.Add(msg.enemyID, enemy);
-	}
+
+        Enemy newEnemy = new Enemy
+        {
+            enemy = enemy, 
+            newPosition = enemy.transform.position, 
+            oldPosition = enemy.transform.position,
+            dir = enemy.transform.forward
+        };
+
+        enemies.Add(msg.enemyID, newEnemy);
+    }
 
     private void OnNewPlayer(Net_NewPlayerJoin msg)
     {
@@ -292,7 +352,7 @@ public class Client : MonoBehaviour
         for (int i = 0; i < msg.playerPositions.Length; ++i)
         {
             if (ourClientID == msg.playerPositions[i].cnnID) continue;
-
+            
             Vector3 pos = new Vector3(msg.playerPositions[i].x, msg.playerPositions[i].y, msg.playerPositions[i].z);
             Player p = players.Find(x => x.connectionID == msg.playerPositions[i].cnnID);
 
@@ -308,20 +368,20 @@ public class Client : MonoBehaviour
             p.dir = dir;
 
             p.isMoving = msg.playerPositions[i].isMoving;
-            updateTime = 0.1f;
+            updatePositionTime = 0.1f;
         }
 
         // Send our position
         Vector3 myPos = ownPlayer.avatar.transform.position;
 
         Vector3 movement = ownPlayer.avatar.GetComponent<PlayerController>().movement;
-        
+
         Net_MyPosition myPosition = new Net_MyPosition
             {ownID = ourClientID, x = myPos.x, y = myPos.y, z = myPos.z, dirX = movement.x, dirZ = movement.z, isMoving = true};
 
         if (movement == Vector3.zero)
             myPosition.isMoving = false;
-        
+
         // Debug.Log(movement);
 
         SendServer(myPosition);
@@ -379,12 +439,11 @@ public class Client : MonoBehaviour
             xDir = dir.x,
             zDir = dir.z
         };
-        
+
         Debug.Log("BulletSpawn Message Sent");
         SendServer(msg);
-        
     }
-    
+
     private void SendServer(NetMessage msg)
     {
         byte[] buffer = new byte[BYTE_SIZE];
