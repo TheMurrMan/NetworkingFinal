@@ -44,13 +44,7 @@ public class Server : MonoBehaviour
 
     private float lastMovementUpdate;
     private float movementUpdateRate = 0.1f;
-
-    private AIManager AIManager;
-
-    private void Awake()
-    {
-        AIManager = FindObjectOfType<AIManager>();
-    }
+    
 
     private void Start()
     {
@@ -134,15 +128,19 @@ public class Server : MonoBehaviour
 
             Send(askPosition, clients);
 
-            //Sending Enemy Position
+            AIManager aiManager = FindObjectOfType<AIManager>();
+            
+            if (!aiManager) return;
+
+                //Sending Enemy Position
             Net_UpdateEnemyPosition enemyPosition = new Net_UpdateEnemyPosition
             {
-                enemies = new Net_UpdateEnemyPosition.position[AIManager.aiList.Count + 1]
+                enemies = new Net_UpdateEnemyPosition.position[aiManager.aiList.Count + 1]
             };
 
-            for (int i = 0; i < AIManager.aiList.Count; i++)
+            for (int i = 0; i < aiManager.aiList.Count; i++)
             {
-                GameObject e = AIManager.aiList[i];
+                GameObject e = aiManager.aiList[i];
                 Vector3 pos = e.transform.position;
                 Vector3 forward = e.transform.forward;
 
