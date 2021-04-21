@@ -8,5 +8,5 @@ public class Net_MyHealth : NetMessage
 
     public int ownID;
 
-    public float health;
+    public int health;
 }
