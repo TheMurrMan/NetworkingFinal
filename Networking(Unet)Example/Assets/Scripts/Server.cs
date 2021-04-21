@@ -186,6 +186,11 @@ public class Server : MonoBehaviour
     private void OnSpawnBullet(Net_SpawnBullet msg)
     {
         //Spawn Bullets in server scene
+        Vector3 pos = new Vector3(msg.x, msg.y, msg.z);
+        Vector3 dir = new Vector3(msg.xDir, 0f, msg.zDir);
+        GameObject bullet = Resources.Load("Bullet") as GameObject;
+        GameObject g = Instantiate(bullet, pos, Quaternion.identity);
+        g.transform.forward = dir;
         //Send Positions back to everyone
 
         Send(msg, clients);

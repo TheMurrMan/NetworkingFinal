@@ -65,7 +65,7 @@ public class AIController : MonoBehaviour
 
         if(enemyHealth <= 0)
 		{
-            GameManager.instance.IncreaseScore(10);
+            //GameManager.instance.IncreaseScore(10);
             Destroy(gameObject);
 		}
     }
