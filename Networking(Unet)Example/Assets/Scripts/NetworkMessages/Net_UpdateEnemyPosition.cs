@@ -20,6 +20,9 @@ public class Net_UpdateEnemyPosition : NetMessage
         //Direction
         public float xDir;
         public float zDir;
+        
+        public bool isMoving;
+
     }
 
     public position[] enemies;

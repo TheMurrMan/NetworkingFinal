@@ -55,7 +55,7 @@ public class Client : MonoBehaviour
     private const int MAX_CONNECTION = 100;
     private const int PORT = 5701;
     private const int BYTE_SIZE = 1024;
-
+    private const int ENEMY_MOVE_SPEED = 1;
     private int hostID;
 
     private int webHostID;
@@ -78,6 +78,8 @@ public class Client : MonoBehaviour
     public GameObject playerPrefab;
     public Player ownPlayer;
 
+    private float updatePositionTime;
+    private float updateEnemyTime;
     private float updateTime;
 
     [SerializeField] public List<Player> players = new List<Player>();
@@ -125,8 +127,9 @@ public class Client : MonoBehaviour
         RecievePackets();
 
         UpdateOtherPlayerPosition();
+        UpdateEnemyPosition();
     }
-
+    
     private void UpdateOtherPlayerPosition()
     {
         foreach (Player p in players)
@@ -134,9 +137,9 @@ public class Client : MonoBehaviour
             //Don't update ourself
             if (p.connectionID == ourClientID) continue;
 
-            if (updateTime > 0f)
+            if (updatePositionTime > 0f)
             {
-                updateTime -= Time.deltaTime;
+                updatePositionTime -= Time.deltaTime;
                 p.avatar.transform.position = Vector3.Lerp(p.oldPosition, p.newPosition, .1f);
             }
             else if (p.isMoving)
@@ -146,6 +149,22 @@ public class Client : MonoBehaviour
                 // Assume the players never change speed and they are using the same speed 
 
                 p.avatar.transform.position += p.dir * (ownPlayer.avatar.GetComponent<PlayerController>().moveSpeed * Time.deltaTime);
+            }
+        }
+    }
+
+    private void UpdateEnemyPosition()
+    {
+        foreach (var e in enemies)
+        {
+            if (updateEnemyTime > 0f)
+            {
+                updateEnemyTime -= Time.deltaTime;
+                e.Value.enemy.transform.position = Vector3.Lerp(e.Value.oldPosition, e.Value.newPosition, .1f);
+            }
+            else if (e.Value.isMoving)
+            {
+                e.Value.enemy.transform.position += e.Value.dir * (ENEMY_MOVE_SPEED * Time.deltaTime);
             }
         }
     }
@@ -246,18 +265,24 @@ public class Client : MonoBehaviour
 
         SendServer(msg);
     }
-
-   
-
+    
     private void UpdateEnemyPositions(Net_UpdateEnemyPosition msg)
     {
         for (int i = 0; i < msg.enemies.Length; i++)
         {
             Vector3 pos = new Vector3(msg.enemies[i].x, msg.enemies[i].y, msg.enemies[i].z);
             Vector3 dir = new Vector3(msg.enemies[i].xDir, 0f, msg.enemies[i].zDir);
-            
-            
-            
+
+            Enemy e = enemies[msg.enemies[i].enemyID];
+
+            e.oldPosition = e.newPosition;
+            e.enemy.transform.position = e.oldPosition;
+            e.newPosition = pos;
+            e.dir = dir;
+
+            e.isMoving = msg.enemies[i].isMoving;
+            updateEnemyTime = 0.1f;
+
         }
     }
     private void OnSpawnBullet(Net_SpawnBullet msg)
@@ -277,7 +302,16 @@ public class Client : MonoBehaviour
         GameObject enemy = Resources.Load("AI") as GameObject;
         Instantiate(enemy);
         enemy.transform.position = new Vector3(msg.x, msg.y, msg.z);
-        enemies.Add(msg.enemyID, enemy);
+
+        Enemy newEnemy = new Enemy
+        {
+            enemy = enemy, 
+            newPosition = enemy.transform.position, 
+            oldPosition = enemy.transform.position,
+            dir = enemy.transform.forward
+        };
+
+        enemies.Add(msg.enemyID, newEnemy);
     }
 
     private void OnNewPlayer(Net_NewPlayerJoin msg)
@@ -334,7 +368,7 @@ public class Client : MonoBehaviour
             p.dir = dir;
 
             p.isMoving = msg.playerPositions[i].isMoving;
-            updateTime = 0.1f;
+            updatePositionTime = 0.1f;
         }
 
         // Send our position
