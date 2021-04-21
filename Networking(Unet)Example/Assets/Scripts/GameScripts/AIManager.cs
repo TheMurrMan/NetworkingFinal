@@ -39,7 +39,8 @@ public class AIManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if(state == SpawnState.Waiting)
+        RemoveDeadAIFromList();
+        if (state == SpawnState.Waiting)
 		{
             // Check if enemies are alive
             if(!EnemyIsAlive())
@@ -73,7 +74,7 @@ public class AIManager : MonoBehaviour
             SpawnWave(waves[nextWave]);
         }
 
-        RemoveDeadAIFromList();
+        
     }
 
     void WaveCompleted()
@@ -136,9 +137,13 @@ public class AIManager : MonoBehaviour
 	{
         foreach(GameObject ai in aiList)
 		{
+            Debug.Log(ai.GetComponent<AIController>().GetHealth());
+
             if(ai.GetComponent<AIController>().GetHealth() <= 0)
 			{
+                Debug.Log("REMOVE");
                 aiList.Remove(ai);
+                Destroy(ai);
 			}
 		}
 	}

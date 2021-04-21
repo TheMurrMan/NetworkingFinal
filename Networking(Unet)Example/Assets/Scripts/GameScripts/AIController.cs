@@ -63,11 +63,11 @@ public class AIController : MonoBehaviour
                 break;
 		}
 
-        if(enemyHealth <= 0)
-		{
-            //GameManager.instance.IncreaseScore(10);
-            Destroy(gameObject);
-		}
+  //      if(enemyHealth <= 0)
+		//{
+  //          //GameManager.instance.IncreaseScore(10);
+  //          Destroy(gameObject);
+		//}
     }
 
     void WalkingState()
