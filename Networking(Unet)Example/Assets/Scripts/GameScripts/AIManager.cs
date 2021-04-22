@@ -142,6 +142,7 @@ public class AIManager : MonoBehaviour
             if(ai.GetComponent<AIController>().GetHealth() <= 0)
 			{
                 Debug.Log("REMOVE");
+                FindObjectOfType<Server>().OnEnemyDeath(ai.GetComponent<AIController>().myId);
                 aiList.Remove(ai);
                 Destroy(ai);
 			}

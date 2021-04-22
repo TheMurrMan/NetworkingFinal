@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Security.Cryptography;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -44,7 +45,7 @@ public class Server : MonoBehaviour
 
     private float lastMovementUpdate;
     private float movementUpdateRate = 0.1f;
-    
+
 
     private void Start()
     {
@@ -129,10 +130,10 @@ public class Server : MonoBehaviour
             Send(askPosition, clients);
 
             AIManager aiManager = FindObjectOfType<AIManager>();
-            
+
             if (!aiManager) return;
 
-                //Sending Enemy Position
+            //Sending Enemy Position
             Net_UpdateEnemyPosition enemyPosition = new Net_UpdateEnemyPosition
             {
                 enemies = new Net_UpdateEnemyPosition.position[aiManager.aiList.Count + 1]
@@ -151,7 +152,7 @@ public class Server : MonoBehaviour
                 enemyPosition.enemies[i].xDir = forward.x;
                 enemyPosition.enemies[i].zDir = forward.z;
             }
-            
+
             Send(enemyPosition, clients);
         }
     }
@@ -173,10 +174,10 @@ public class Server : MonoBehaviour
                 OnSpawnBullet((Net_SpawnBullet) msg);
                 break;
             case NetCode.MyHealth:
-                OnMyHealth((Net_MyHealth)msg);
+                OnMyHealth((Net_MyHealth) msg);
                 break;
             case NetCode.MyScore:
-                OnMyScore((Net_MyScore)msg);
+                OnMyScore((Net_MyScore) msg);
                 break;
         }
     }
@@ -253,6 +254,15 @@ public class Server : MonoBehaviour
         Send(msg, clients);
     }
 
+    public void OnEnemyDeath(int id)
+    {
+        Net_EnemyDeath msg = new Net_EnemyDeath()
+        {
+            enemyID = id
+        };
+        Send(msg, clients);
+    }
+
     public void OnMyHealth(Net_MyHealth msg)
     {
         ServerClient client = clients.Find(c => c.connectionID == msg.ownID);
@@ -264,6 +274,7 @@ public class Server : MonoBehaviour
         ServerClient client = clients.Find(c => c.connectionID == msg.ownID);
         client.score = msg.score;
     }
+
     private void OnDisconnection(int cnnID)
     {
         // remove this player from list

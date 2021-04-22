@@ -14,6 +14,7 @@
     public const int MyScore = 11;
     public const int AskScore = 12;
     public const int UpdateEnemyPosition = 13;
+    public const int EnemyDeath = 14;
 }
 
 

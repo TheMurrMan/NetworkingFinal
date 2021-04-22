@@ -159,6 +159,7 @@ public class Client : MonoBehaviour
         {
             if (updateEnemyTime > 0f)
             {
+                
                 updateEnemyTime -= Time.deltaTime;
                 e.Value.enemy.transform.position = Vector3.Lerp(e.Value.oldPosition, e.Value.newPosition, .1f);
             }
@@ -249,9 +250,18 @@ public class Client : MonoBehaviour
             case NetCode.AskScore:
                 OnAskScore((Net_AskScore)msg);
                 break;
+            case NetCode.EnemyDeath:
+                OnEnemyDeath((Net_EnemyDeath) msg);
+                break;
         }
     }
 
+    private void OnEnemyDeath(Net_EnemyDeath msg)
+    {
+        Destroy(enemies[msg.enemyID].enemy);
+        enemies.Remove(msg.enemyID);
+    }
+    
     private void OnAskScore(Net_AskScore msg)
 	{
         ourClientID = msg.ownID;
@@ -268,11 +278,15 @@ public class Client : MonoBehaviour
     
     private void UpdateEnemyPositions(Net_UpdateEnemyPosition msg)
     {
+        if (enemies.Count < 0) return;
+        
         for (int i = 0; i < msg.enemies.Length; i++)
-        {
+        { 
             Vector3 pos = new Vector3(msg.enemies[i].x, msg.enemies[i].y, msg.enemies[i].z);
             Vector3 dir = new Vector3(msg.enemies[i].xDir, 0f, msg.enemies[i].zDir);
 
+            if (!enemies.ContainsKey(msg.enemies[i].enemyID)) continue;
+            
             Enemy e = enemies[msg.enemies[i].enemyID];
 
             e.oldPosition = e.newPosition;
@@ -281,13 +295,13 @@ public class Client : MonoBehaviour
             e.dir = dir;
 
             e.isMoving = msg.enemies[i].isMoving;
-            updateEnemyTime = 0.1f;
-
         }
+        updateEnemyTime = 0.1f;
+
     }
     private void OnSpawnBullet(Net_SpawnBullet msg)
     {
-        Debug.Log("BulletSpawn Message Recieved");
+        //Debug.Log("BulletSpawn Message Recieved");
 
         Vector3 pos = new Vector3(msg.x, msg.y, msg.z);
         Vector3 dir = new Vector3(msg.xDir, 0f, msg.zDir);
@@ -299,8 +313,7 @@ public class Client : MonoBehaviour
 
     private void OnSpawnEnemy(Net_SpawnEnemy msg)
     {
-        GameObject enemy = Resources.Load("AI") as GameObject;
-        Instantiate(enemy);
+        GameObject enemy = Instantiate(Resources.Load("AI")) as GameObject;
         enemy.transform.position = new Vector3(msg.x, msg.y, msg.z);
 
         Enemy newEnemy = new Enemy
@@ -311,7 +324,13 @@ public class Client : MonoBehaviour
             dir = enemy.transform.forward
         };
 
+        if (enemies.ContainsKey(msg.enemyID))
+        {
+            Debug.LogError(msg.enemyID + " already exists");
+        }
+        
         enemies.Add(msg.enemyID, newEnemy);
+        enemy.GetComponent<AIController>().enabled = false;
     }
 
     private void OnNewPlayer(Net_NewPlayerJoin msg)
@@ -358,7 +377,7 @@ public class Client : MonoBehaviour
 
             Vector3 dir = new Vector3(msg.playerPositions[i].dirX, 0, msg.playerPositions[i].dirZ);
 
-            Debug.Log("Current ID: " + msg.playerPositions[i].cnnID);
+            //Debug.Log("Current ID: " + msg.playerPositions[i].cnnID);
 
             if (msg.playerPositions[i].cnnID == 0) continue;
 
@@ -440,7 +459,7 @@ public class Client : MonoBehaviour
             zDir = dir.z
         };
 
-        Debug.Log("BulletSpawn Message Sent");
+        //Debug.Log("BulletSpawn Message Sent");
         SendServer(msg);
     }
 
