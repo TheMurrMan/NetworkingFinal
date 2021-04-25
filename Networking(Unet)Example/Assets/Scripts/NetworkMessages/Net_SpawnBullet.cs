@@ -8,8 +8,8 @@ public class Net_SpawnBullet : NetMessage
 
     //So we know who the owner is
     public int ownerID;
-
     public int bulletID;
+    
     //Position
     public float x;
     public float y;

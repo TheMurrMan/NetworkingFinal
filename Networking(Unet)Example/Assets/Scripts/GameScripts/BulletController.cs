@@ -18,20 +18,18 @@ public class BulletController : MonoBehaviour
 			Destroy(gameObject);
 		}
 	}
-
-	private void Start()
-	{
-		Destroy(gameObject, timeToLive);
-	}
-
+	
 	// Update is called once per frame
 	void Update()
     {
         transform.Translate(Vector3.forward * speed * Time.deltaTime);
-    }
+        
+        timeToLive -= Time.deltaTime;
 
-	private void OnDestroy()
-	{
-		FindObjectOfType<Client>().RemoveBullet(myID);
-	}
+        if (timeToLive <= 0f)
+        {
+	        FindObjectOfType<Client>().RemoveBullet(myID);
+        }
+    }
+	
 }

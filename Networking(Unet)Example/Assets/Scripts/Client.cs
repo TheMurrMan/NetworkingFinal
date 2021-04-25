@@ -263,20 +263,16 @@ public class Client : MonoBehaviour
 
     public void RemoveBullet(int id)
     {
-        if(bullets[id])
-            Destroy(bullets[id]);
-        
+        Destroy(bullets[id]);
         bullets.Remove(id);
     }
-    
+
     private void OnEnemyDamage(Net_EnemyDamage msg)
     {
         enemies[msg.enemyID].enemy.gameObject.GetComponentInChildren<Slider>().value = msg.newHealth;
-        Destroy(bullets[msg.bulletID]);
-        bullets.Remove(msg.bulletID);
-
+        RemoveBullet(msg.bulletID);
     }
-    
+
     private void OnEnemyDeath(Net_EnemyDeath msg)
     {
         Destroy(enemies[msg.enemyID].enemy);
@@ -330,8 +326,9 @@ public class Client : MonoBehaviour
 
         GameObject g = Instantiate(FindObjectOfType<PlayerController>().bulletPrefab, pos, Quaternion.identity);
         g.transform.forward = dir;
+        g.GetComponent<BulletController>().myID = msg.bulletID;
         Destroy(g.GetComponent<Collider>());
-        
+
         bullets.Add(msg.bulletID, g);
     }
 

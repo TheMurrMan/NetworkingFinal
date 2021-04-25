@@ -193,6 +193,7 @@ public class Server : MonoBehaviour
         GameObject g = Instantiate(bullet, pos, Quaternion.identity);
         g.transform.forward = dir;
         g.GetComponent<BulletController>().myID = bulletID;
+        msg.bulletID = bulletID;
         bulletID++;
         
         bullets.Add(g.GetComponent<BulletController>());
