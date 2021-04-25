@@ -35,15 +35,14 @@ public class PlayerController : MonoBehaviour
         GetPlayerInput();
 
         healthbar.value = playerHealth;
-        if (playerHealth <=0)
+        if (playerHealth <= 0)
 		{
             Debug.Log("DIE");
-            //Die();
+            Die();
         }
     }
-
-	private void FixedUpdate()
-	{
+    private void FixedUpdate()
+    {
         rb.MovePosition(rb.position + movement * moveSpeed * Time.fixedDeltaTime);
         //transform.Translate(movement * moveSpeed * Time.fixedDeltaTime);
     }
@@ -53,7 +52,6 @@ public class PlayerController : MonoBehaviour
         movement.x = Input.GetAxisRaw("Horizontal");
         movement.z = Input.GetAxisRaw("Vertical");
 
-
         Ray cameraRay = cam.ScreenPointToRay(Input.mousePosition);
         Plane groundPlane = new Plane(Vector3.up, Vector3.zero);
         float rayLength;
@@ -62,7 +60,12 @@ public class PlayerController : MonoBehaviour
 		{
             Vector3 pointToLook = cameraRay.GetPoint(rayLength);
 
-            transform.LookAt(new Vector3(pointToLook.x, transform.position.y, pointToLook.z));
+            Quaternion targetRot = Quaternion.LookRotation(pointToLook - transform.position);
+            targetRot.x = 0;
+            targetRot.z = 0;
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, 7f * Time.deltaTime);
+
+            //transform.LookAt(new Vector3(pointToLook.x, transform.position.y, pointToLook.z));
 		}
 
         if(Input.GetMouseButtonDown(0))
@@ -82,11 +85,6 @@ public class PlayerController : MonoBehaviour
     void Die()
 	{
         Destroy(gameObject);
-	}
-
-    public void TakeDamage(int damage)
-	{
-        playerHealth -= damage;
 	}
 
     public int GetHealth()
