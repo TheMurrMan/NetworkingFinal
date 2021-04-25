@@ -16,6 +16,9 @@
     public const int UpdateEnemyPosition = 13;
     public const int EnemyDeath = 14;
     public const int EnemyDamage = 15;
+    public const int PlayerDeath = 16;
+    public const int PlayerDamage = 17;
+
 }
 
 

@@ -13,7 +13,7 @@ public class ServerClient
     public string playerName;
     public Vector3 position;
 
-    public int health;
+    public int health = 100;
     public int score;
     public float dirX;
     public float dirZ;
@@ -339,6 +339,18 @@ public class Server : MonoBehaviour
         RemoveBulletFromList(id);
         Send(enemyDamage,clients);
     }
+
+    public void OnPlayerTakeDamage(ServerClient client, int id)
+	{
+        client.health -= 2;
+        
+        Net_PlayerDamage playerDamage = new Net_PlayerDamage()
+        {
+            newHealth = client.health,
+            playerID = id,
+        };
+        Send(playerDamage, clients);
+	}
 
     private void Send(NetMessage msg, int cnnID)
     {

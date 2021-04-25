@@ -75,11 +75,11 @@ public class Client : MonoBehaviour
 
     private string ourPlayerName;
     private int ourScore;
-    private int ourHealth;
+    public int ourHealth;
 
     public GameObject playerPrefab;
     public Player ownPlayer;
-
+    public Slider healthBar;
     private float updatePositionTime;
     private float updateEnemyTime;
     private float updateTime;
@@ -88,7 +88,10 @@ public class Client : MonoBehaviour
     [SerializeField] public Dictionary<int, Enemy> enemies = new Dictionary<int, Enemy>();
     [SerializeField] public Dictionary<int, GameObject> bullets = new Dictionary<int, GameObject>();
 
-    public void Connect()
+	private void Start()
+	{
+	}
+	public void Connect()
     {
         Debug.Log("Connecting");
         // Does the player have a name
@@ -131,6 +134,10 @@ public class Client : MonoBehaviour
 
         UpdateOtherPlayerPosition();
         UpdateEnemyPosition();
+        if(healthBar != null)
+		{
+            healthBar.value = ourHealth;
+        }
     }
 
     private void UpdateOtherPlayerPosition()
@@ -169,29 +176,6 @@ public class Client : MonoBehaviour
             {
                 e.Value.enemy.transform.position += e.Value.dir * (ENEMY_MOVE_SPEED * Time.deltaTime);
             }
-        }
-    }
-
-    private void UpdateOtherPlayersHealth()
-    {
-        foreach (Player p in players)
-        {
-            //Don't update ourself
-            if (p.connectionID == ourClientID) continue;
-
-            if (updateTime > 0f)
-            {
-                updateTime -= Time.deltaTime;
-            }
-        }
-    }
-
-    private void UpdateOtherPlayersScore()
-    {
-        foreach (Player p in players)
-        {
-            //Don't update ourself
-            if (p.connectionID == ourClientID) continue;
         }
     }
 
@@ -258,6 +242,12 @@ public class Client : MonoBehaviour
             case NetCode.EnemyDamage:
                 OnEnemyDamage((Net_EnemyDamage) msg);
                 break;
+            case NetCode.PlayerDamage:
+                OnPlayerDamage((Net_PlayerDamage)msg);
+                break;
+            case NetCode.PlayerDeath:
+                OnPlayerDeath((Net_PlayerDeath)msg);
+                break;
         }
     }
 
@@ -277,6 +267,33 @@ public class Client : MonoBehaviour
     {
         Destroy(enemies[msg.enemyID].enemy);
         enemies.Remove(msg.enemyID);
+    }
+
+    private void OnPlayerDamage(Net_PlayerDamage msg)
+	{
+        if(ourClientID == msg.playerID)
+		{
+            ourHealth = msg.newHealth;
+            
+		}
+	}
+
+    private void OnPlayerDeath(Net_PlayerDeath msg)
+    {
+        if(ourClientID == msg.playerID)
+		{
+            PlayerController pc = FindObjectOfType<PlayerController>();
+            Destroy(pc.gameObject);
+        }
+        
+        foreach(Player player in players)
+		{
+            if(player.connectionID == msg.playerID)
+			{
+                Destroy(player.avatar);
+                players.Remove(player);
+			}
+		}
     }
 
     private void OnAskScore(Net_AskScore msg)
@@ -451,7 +468,7 @@ public class Client : MonoBehaviour
             rb.mass = 500;
             go.AddComponent<CapsuleCollider>();
             p.avatar.GetComponentInChildren<TextMesh>().text = ourPlayerName;
-
+            healthBar = go.GetComponentInChildren<Slider>();
             ownPlayer = p;
             isStarted = true;
         }

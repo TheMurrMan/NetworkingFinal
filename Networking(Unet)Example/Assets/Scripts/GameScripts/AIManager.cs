@@ -137,11 +137,8 @@ public class AIManager : MonoBehaviour
 	{
         foreach(GameObject ai in aiList)
 		{
-            Debug.Log(ai.GetComponent<AIController>().GetHealth());
-
             if(ai.GetComponent<AIController>().GetHealth() <= 0)
 			{
-                Debug.Log("REMOVE");
                 FindObjectOfType<Server>().OnEnemyDeath(ai.GetComponent<AIController>().myId);
                 aiList.Remove(ai);
                 Destroy(ai);

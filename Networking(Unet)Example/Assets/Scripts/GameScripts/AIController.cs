@@ -62,12 +62,6 @@ public class AIController : MonoBehaviour
             default:
                 break;
 		}
-
-  //      if(enemyHealth <= 0)
-		//{
-  //          //GameManager.instance.IncreaseScore(10);
-  //          Destroy(gameObject);
-		//}
     }
 
     void WalkingState()
@@ -99,7 +93,9 @@ public class AIController : MonoBehaviour
                 {
                     Debug.Log("Attack");
                     attackTimer = 0f;
-                    //closestPlayer.GetComponent<PlayerController>().TakeDamage(enemyDamage);
+                    Server server = FindObjectOfType<Server>();
+
+                    server.OnPlayerTakeDamage(closestPlayer, myId);
                 }
             }
         }
