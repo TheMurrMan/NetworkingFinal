@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
-using System.Security.Cryptography;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -46,6 +45,9 @@ public class Server : MonoBehaviour
     private float lastMovementUpdate;
     private float movementUpdateRate = 0.1f;
 
+    private int bulletID = 0;
+    public List<BulletController> bullets = new List<BulletController>();
+    
 
     private void Start()
     {
@@ -190,11 +192,26 @@ public class Server : MonoBehaviour
         GameObject bullet = Resources.Load("Bullet") as GameObject;
         GameObject g = Instantiate(bullet, pos, Quaternion.identity);
         g.transform.forward = dir;
-        //Send Positions back to everyone
-
+        g.GetComponent<BulletController>().myID = bulletID;
+        bulletID++;
+        
+        bullets.Add(g.GetComponent<BulletController>());
+        
         Send(msg, clients);
     }
 
+    private void RemoveBulletFromList(int bulletID)
+    {
+        foreach (var b in bullets)
+        {
+            if (b.myID == bulletID)
+            {
+                bullets.Remove(b);
+                break;
+            }
+        }
+    }
+    
     private void OnConnection(int cnnID)
     {
         // Add him to list
@@ -307,6 +324,19 @@ public class Server : MonoBehaviour
         client.dirX = msg.dirX;
         client.dirZ = msg.dirZ;
         client.isMoving = msg.isMoving;
+    }
+    
+    public void OnTakeDamage(AIController enemy, int id)
+    {
+        Net_EnemyDamage enemyDamage = new Net_EnemyDamage()
+        {
+            enemyID = enemy.myId,
+            newHealth = enemy.GetHealth(),
+            bulletID = id
+        };
+        
+        RemoveBulletFromList(id);
+        Send(enemyDamage,clients);
     }
 
     private void Send(NetMessage msg, int cnnID)

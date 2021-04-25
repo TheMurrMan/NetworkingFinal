@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -6,13 +7,14 @@ public class BulletController : MonoBehaviour
 {
     public float speed;
 	public float timeToLive;
+	public int myID;
 	private void OnCollisionEnter(Collision collision)
 	{
 		if(collision.gameObject.CompareTag("AI"))
 		{
 			Debug.Log("HIT");
 			
-			collision.gameObject.GetComponent<AIController>().TakeDamage(10);
+			collision.gameObject.GetComponent<AIController>().TakeDamage(10, myID);
 			Destroy(gameObject);
 		}
 	}
@@ -27,4 +29,9 @@ public class BulletController : MonoBehaviour
     {
         transform.Translate(Vector3.forward * speed * Time.deltaTime);
     }
+
+	private void OnDestroy()
+	{
+		FindObjectOfType<Client>().RemoveBullet(myID);
+	}
 }

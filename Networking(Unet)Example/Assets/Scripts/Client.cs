@@ -7,6 +7,8 @@ using System.Runtime.Serialization.Formatters.Binary;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Networking;
+using UnityEngine.UIElements;
+using Slider = UnityEngine.UI.Slider;
 
 [Serializable]
 public class Player
@@ -84,6 +86,7 @@ public class Client : MonoBehaviour
 
     [SerializeField] public List<Player> players = new List<Player>();
     [SerializeField] public Dictionary<int, Enemy> enemies = new Dictionary<int, Enemy>();
+    [SerializeField] public Dictionary<int, GameObject> bullets = new Dictionary<int, GameObject>();
 
     public void Connect()
     {
@@ -129,7 +132,7 @@ public class Client : MonoBehaviour
         UpdateOtherPlayerPosition();
         UpdateEnemyPosition();
     }
-    
+
     private void UpdateOtherPlayerPosition()
     {
         foreach (Player p in players)
@@ -159,7 +162,6 @@ public class Client : MonoBehaviour
         {
             if (updateEnemyTime > 0f)
             {
-                
                 updateEnemyTime -= Time.deltaTime;
                 e.Value.enemy.transform.position = Vector3.Lerp(e.Value.oldPosition, e.Value.newPosition, .1f);
             }
@@ -171,7 +173,7 @@ public class Client : MonoBehaviour
     }
 
     private void UpdateOtherPlayersHealth()
-	{
+    {
         foreach (Player p in players)
         {
             //Don't update ourself
@@ -180,10 +182,10 @@ public class Client : MonoBehaviour
             if (updateTime > 0f)
             {
                 updateTime -= Time.deltaTime;
-                
             }
         }
     }
+
     private void UpdateOtherPlayersScore()
     {
         foreach (Player p in players)
@@ -245,28 +247,47 @@ public class Client : MonoBehaviour
                 UpdateEnemyPositions((Net_UpdateEnemyPosition) msg);
                 break;
             case NetCode.AskHealth:
-                OnAskHealth((Net_AskHealth)msg);
+                OnAskHealth((Net_AskHealth) msg);
                 break;
             case NetCode.AskScore:
-                OnAskScore((Net_AskScore)msg);
+                OnAskScore((Net_AskScore) msg);
                 break;
             case NetCode.EnemyDeath:
                 OnEnemyDeath((Net_EnemyDeath) msg);
                 break;
+            case NetCode.EnemyDamage:
+                OnEnemyDamage((Net_EnemyDamage) msg);
+                break;
         }
     }
 
+    public void RemoveBullet(int id)
+    {
+        if(bullets[id])
+            Destroy(bullets[id]);
+        
+        bullets.Remove(id);
+    }
+    
+    private void OnEnemyDamage(Net_EnemyDamage msg)
+    {
+        enemies[msg.enemyID].enemy.gameObject.GetComponentInChildren<Slider>().value = msg.newHealth;
+        Destroy(bullets[msg.bulletID]);
+        bullets.Remove(msg.bulletID);
+
+    }
+    
     private void OnEnemyDeath(Net_EnemyDeath msg)
     {
         Destroy(enemies[msg.enemyID].enemy);
         enemies.Remove(msg.enemyID);
     }
-    
+
     private void OnAskScore(Net_AskScore msg)
-	{
+    {
         ourClientID = msg.ownID;
         msg.score = ourScore;
-	}
+    }
 
     private void OnAskHealth(Net_AskHealth msg)
     {
@@ -275,18 +296,18 @@ public class Client : MonoBehaviour
 
         SendServer(msg);
     }
-    
+
     private void UpdateEnemyPositions(Net_UpdateEnemyPosition msg)
     {
         if (enemies.Count < 0) return;
-        
+
         for (int i = 0; i < msg.enemies.Length; i++)
-        { 
+        {
             Vector3 pos = new Vector3(msg.enemies[i].x, msg.enemies[i].y, msg.enemies[i].z);
             Vector3 dir = new Vector3(msg.enemies[i].xDir, 0f, msg.enemies[i].zDir);
 
             if (!enemies.ContainsKey(msg.enemies[i].enemyID)) continue;
-            
+
             Enemy e = enemies[msg.enemies[i].enemyID];
 
             e.oldPosition = e.newPosition;
@@ -296,9 +317,10 @@ public class Client : MonoBehaviour
 
             e.isMoving = msg.enemies[i].isMoving;
         }
-        updateEnemyTime = 0.1f;
 
+        updateEnemyTime = 0.1f;
     }
+
     private void OnSpawnBullet(Net_SpawnBullet msg)
     {
         //Debug.Log("BulletSpawn Message Recieved");
@@ -309,6 +331,8 @@ public class Client : MonoBehaviour
         GameObject g = Instantiate(FindObjectOfType<PlayerController>().bulletPrefab, pos, Quaternion.identity);
         g.transform.forward = dir;
         Destroy(g.GetComponent<Collider>());
+        
+        bullets.Add(msg.bulletID, g);
     }
 
     private void OnSpawnEnemy(Net_SpawnEnemy msg)
@@ -318,8 +342,8 @@ public class Client : MonoBehaviour
 
         Enemy newEnemy = new Enemy
         {
-            enemy = enemy, 
-            newPosition = enemy.transform.position, 
+            enemy = enemy,
+            newPosition = enemy.transform.position,
             oldPosition = enemy.transform.position,
             dir = enemy.transform.forward
         };
@@ -328,7 +352,7 @@ public class Client : MonoBehaviour
         {
             Debug.LogError(msg.enemyID + " already exists");
         }
-        
+
         enemies.Add(msg.enemyID, newEnemy);
         enemy.GetComponent<AIController>().enabled = false;
     }
@@ -371,7 +395,7 @@ public class Client : MonoBehaviour
         for (int i = 0; i < msg.playerPositions.Length; ++i)
         {
             if (ourClientID == msg.playerPositions[i].cnnID) continue;
-            
+
             Vector3 pos = new Vector3(msg.playerPositions[i].x, msg.playerPositions[i].y, msg.playerPositions[i].z);
             Player p = players.Find(x => x.connectionID == msg.playerPositions[i].cnnID);
 
@@ -427,7 +451,7 @@ public class Client : MonoBehaviour
             go.AddComponent<PlayerController>();
             Rigidbody rb = go.AddComponent<Rigidbody>();
             rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ | RigidbodyConstraints.FreezePositionY;
-
+            rb.mass = 500;
             go.AddComponent<CapsuleCollider>();
             p.avatar.GetComponentInChildren<TextMesh>().text = ourPlayerName;
 

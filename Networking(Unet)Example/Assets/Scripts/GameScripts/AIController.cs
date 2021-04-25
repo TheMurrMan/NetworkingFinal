@@ -126,10 +126,11 @@ public class AIController : MonoBehaviour
         }
     }
 
-    public void TakeDamage(int damage)
+    public void TakeDamage(int damage, int bulletID)
 	{
         enemyHealth -= damage;
-	}
+        FindObjectOfType<Server>().OnTakeDamage(this, bulletID);
+    }
 
     private void GetClosestPlayer()
     {
