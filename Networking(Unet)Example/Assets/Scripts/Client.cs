@@ -20,6 +20,7 @@ public class Player
     public Vector3 newPosition;
     public bool isMoving = false;
     public Vector3 dir;
+    public Slider healthbar;
 }
 
 [Serializable]
@@ -65,8 +66,8 @@ public class Client : MonoBehaviour
     private int reliableChannel;
     private int unreliableChannel;
 
-    private int ourClientID;
-    private int connectionID;
+    public int ourClientID;
+    public int connectionID;
 
     private float connectionTime;
     private bool isConnected = false;
@@ -75,7 +76,7 @@ public class Client : MonoBehaviour
 
     private string ourPlayerName;
     private int ourScore;
-    public int ourHealth;
+    public int ourHealth = 100;
 
     public GameObject playerPrefab;
     public Player ownPlayer;
@@ -88,10 +89,11 @@ public class Client : MonoBehaviour
     [SerializeField] public Dictionary<int, Enemy> enemies = new Dictionary<int, Enemy>();
     [SerializeField] public Dictionary<int, GameObject> bullets = new Dictionary<int, GameObject>();
 
-	private void Start()
-	{
-	}
-	public void Connect()
+    private void Start()
+    {
+    }
+
+    public void Connect()
     {
         Debug.Log("Connecting");
         // Does the player have a name
@@ -134,10 +136,11 @@ public class Client : MonoBehaviour
 
         UpdateOtherPlayerPosition();
         UpdateEnemyPosition();
-        if(healthBar != null)
+
+        /*if(healthBar != null)
 		{
             healthBar.value = ourHealth;
-        }
+        }*/
     }
 
     private void UpdateOtherPlayerPosition()
@@ -243,10 +246,10 @@ public class Client : MonoBehaviour
                 OnEnemyDamage((Net_EnemyDamage) msg);
                 break;
             case NetCode.PlayerDamage:
-                OnPlayerDamage((Net_PlayerDamage)msg);
+                OnPlayerDamage((Net_PlayerDamage) msg);
                 break;
             case NetCode.PlayerDeath:
-                OnPlayerDeath((Net_PlayerDeath)msg);
+                OnPlayerDeath((Net_PlayerDeath) msg);
                 break;
         }
     }
@@ -270,41 +273,52 @@ public class Client : MonoBehaviour
     }
 
     private void OnPlayerDamage(Net_PlayerDamage msg)
-	{
-        if(ourClientID == msg.playerID)
-		{
+    {
+        if (ourClientID == msg.playerID)
+        {
             ourHealth = msg.newHealth;
-            
-		}
-	}
+            healthBar.value = ourHealth;
+        }
+        else
+        {
+            foreach (var p in players)
+            {
+                if (p.connectionID == msg.playerID)
+                {
+                    p.healthbar.value = msg.newHealth;
+                    return;
+                }
+            }
+        }
+    }
 
     private void OnPlayerDeath(Net_PlayerDeath msg)
     {
-        if(ourClientID == msg.playerID)
-		{
+        if (ourClientID == msg.playerID)
+        {
             PlayerController pc = FindObjectOfType<PlayerController>();
             Destroy(pc.gameObject);
         }
-        
-        foreach(Player player in players)
-		{
-            if(player.connectionID == msg.playerID)
-			{
+
+        foreach (Player player in players)
+        {
+            if (player.connectionID == msg.playerID)
+            {
                 Destroy(player.avatar);
                 players.Remove(player);
-			}
-		}
+            }
+        }
     }
 
     private void OnAskScore(Net_AskScore msg)
     {
-        ourClientID = msg.ownID;
+        //ourClientID = msg.ownID;
         msg.score = ourScore;
     }
 
     private void OnAskHealth(Net_AskHealth msg)
     {
-        ourClientID = msg.ownID;
+        //ourClientID = msg.ownID;
         msg.health = ourHealth;
 
         SendServer(msg);
@@ -373,7 +387,7 @@ public class Client : MonoBehaviour
 
     private void OnNewPlayer(Net_NewPlayerJoin msg)
     {
-        if (msg.cnnID == ourClientID) return;
+        //if (msg.cnnID == ourClientID) return;
 
         SpawnPlayer(msg.playerName, msg.cnnID);
     }
@@ -389,11 +403,11 @@ public class Client : MonoBehaviour
         // Send our name to server
         SendServer(nameIs);
 
-        // Create all other players
+        if (msg.currentPlayers.Length <= 0) return;
+
+        // Create all players
         for (int i = 0; i < msg.currentPlayers.Length; i++)
         {
-            //We don't want to spawn ourselves;
-            if (i == ourClientID) continue;
             SpawnPlayer(msg.currentPlayers[i], msg.currentIDs[i]);
         }
     }
@@ -457,6 +471,7 @@ public class Client : MonoBehaviour
         var position = p.avatar.transform.position;
         p.oldPosition = position;
         p.newPosition = position;
+        p.healthbar = p.avatar.GetComponentInChildren<Slider>();
 
         if (cnnID == ourClientID)
         {

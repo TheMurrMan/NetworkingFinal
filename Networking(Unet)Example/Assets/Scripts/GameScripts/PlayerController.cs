@@ -15,12 +15,14 @@ public class PlayerController : MonoBehaviour
     public Transform gunEnd;
 
     public Slider healthbar;
-    
+
+    private Client client;
     [SerializeField] private int playerHealth = 100;
 	private void Start()
 	{
         rb = GetComponent<Rigidbody>();
         cam = FindObjectOfType<Camera>();
+        client = FindObjectOfType<Client>();
 
         gunEnd = transform.GetChild(2);
         bulletPrefab = Resources.Load("Bullet") as GameObject;
@@ -34,7 +36,8 @@ public class PlayerController : MonoBehaviour
     {
         GetPlayerInput();
 
-        healthbar.value = playerHealth;
+        playerHealth = client.ourHealth;
+        
         if (playerHealth <= 0)
 		{
             Debug.Log("DIE");
@@ -84,7 +87,7 @@ public class PlayerController : MonoBehaviour
 
     void Die()
 	{
-        Destroy(gameObject);
+        //Destroy(gameObject);
 	}
 
 

@@ -95,7 +95,7 @@ public class AIController : MonoBehaviour
                     attackTimer = 0f;
                     Server server = FindObjectOfType<Server>();
 
-                    server.OnPlayerTakeDamage(closestPlayer, myId);
+                    server.OnPlayerTakeDamage(closestPlayer);
                 }
             }
         }

@@ -1,12 +1,12 @@
 ﻿#pragma warning disable 618
 
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using UnityEngine;
 using UnityEngine.Networking;
 
+[System.Serializable]
 public class ServerClient
 {
     public int connectionID;
@@ -47,7 +47,7 @@ public class Server : MonoBehaviour
 
     private int bulletID = 0;
     public List<BulletController> bullets = new List<BulletController>();
-    
+
 
     private void Start()
     {
@@ -195,53 +195,41 @@ public class Server : MonoBehaviour
         g.GetComponent<BulletController>().myID = bulletID;
         msg.bulletID = bulletID;
         bulletID++;
-        
+
         bullets.Add(g.GetComponent<BulletController>());
-        
+
         Send(msg, clients);
     }
 
-    private void RemoveBulletFromList(int bulletID)
+    public void RemoveBulletFromList(int bulletID)
     {
         foreach (var b in bullets)
         {
             if (b.myID == bulletID)
             {
                 bullets.Remove(b);
+                Destroy(b.gameObject);
                 break;
             }
         }
     }
-    
+
     private void OnConnection(int cnnID)
     {
-        // Add him to list
-        ServerClient c = new ServerClient();
-        c.connectionID = cnnID;
-        c.playerName = "Temp";
-
-        clients.Add(c);
-
         // When player joins server, say ID
 
         // Request name, send name of all other players
 
         Net_AskName askName = new Net_AskName();
         askName.clientID = cnnID;
-        askName.currentPlayers = new string[clients.Count + 1];
-        askName.currentIDs = new int[clients.Count + 1];
+        askName.currentPlayers = new string[clients.Count];
+        askName.currentIDs = new int[clients.Count];
 
 
         for (int i = 0; i < clients.Count; i++)
         {
             askName.currentPlayers[i] = clients[i].playerName;
             askName.currentIDs[i] = clients[i].connectionID;
-        }
-
-
-        if (clients.Count >= 2)
-        {
-            CreateAIManager();
         }
 
         Send(askName, cnnID);
@@ -305,8 +293,15 @@ public class Server : MonoBehaviour
 
     private void OnNameIs(int cnnID, Net_NameIs msg)
     {
+        // Add him to list
+        ServerClient c = new ServerClient();
+        c.connectionID = cnnID;
+        c.playerName = msg.playerName;
+
+        clients.Add(c);
+
         // Link name to connection ID
-        clients.Find(x => x.connectionID == cnnID).playerName = msg.playerName;
+        //clients.Find(x => x.connectionID == cnnID).playerName = msg.playerName;
 
         // Tell everyone new player connected
         Net_NewPlayerJoin newPlayerJoin = new Net_NewPlayerJoin();
@@ -314,6 +309,11 @@ public class Server : MonoBehaviour
         newPlayerJoin.cnnID = cnnID;
 
         Send(newPlayerJoin, clients);
+
+        if (clients.Count >= 2)
+        {
+            CreateAIManager();
+        }
     }
 
     private void OnMyPosition(Net_MyPosition msg)
@@ -326,7 +326,7 @@ public class Server : MonoBehaviour
         client.dirZ = msg.dirZ;
         client.isMoving = msg.isMoving;
     }
-    
+
     public void OnTakeDamage(AIController enemy, int id)
     {
         Net_EnemyDamage enemyDamage = new Net_EnemyDamage()
@@ -335,28 +335,32 @@ public class Server : MonoBehaviour
             newHealth = enemy.GetHealth(),
             bulletID = id
         };
-        
+
         RemoveBulletFromList(id);
-        Send(enemyDamage,clients);
+        Send(enemyDamage, clients);
     }
 
-    public void OnPlayerTakeDamage(ServerClient client, int id)
-	{
+    public void OnPlayerTakeDamage(ServerClient client)
+    {
         client.health -= 2;
-        
+
         Net_PlayerDamage playerDamage = new Net_PlayerDamage()
         {
             newHealth = client.health,
-            playerID = id,
+            playerID = client.connectionID,
         };
         Send(playerDamage, clients);
-	}
+    }
 
     private void Send(NetMessage msg, int cnnID)
     {
-        List<ServerClient> c = new List<ServerClient>();
-        c.Add(clients.Find(x => x.connectionID == cnnID));
-        Send(msg, c);
+        byte[] buffer = new byte[BYTE_SIZE];
+
+        BinaryFormatter formatter = new BinaryFormatter();
+        MemoryStream ms = new MemoryStream(buffer);
+        formatter.Serialize(ms, msg);
+
+        NetworkTransport.Send(hostID, cnnID, reliableChannel, buffer, BYTE_SIZE, out error);
     }
 
     private void Send(NetMessage msg, List<ServerClient> c)

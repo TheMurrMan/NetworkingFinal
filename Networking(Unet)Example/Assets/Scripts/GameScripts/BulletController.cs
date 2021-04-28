@@ -28,7 +28,8 @@ public class BulletController : MonoBehaviour
 
         if (timeToLive <= 0f)
         {
-	        FindObjectOfType<Client>().RemoveBullet(myID);
+	        FindObjectOfType<Client>()?.RemoveBullet(myID);
+	        FindObjectOfType<Server>()?.RemoveBulletFromList(myID);
         }
     }
 	
