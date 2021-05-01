@@ -181,9 +181,22 @@ public class Server : MonoBehaviour
             case NetCode.MyScore:
                 OnMyScore((Net_MyScore) msg);
                 break;
+            case NetCode.ChatMessage:
+                OnChatMessage((Net_SendChatMessage) msg);
+                break;
         }
     }
 
+    private void OnChatMessage(Net_SendChatMessage msg)
+    {
+        Net_SendChatMessage newMessage = new Net_SendChatMessage()
+        {
+            message = msg.username + ": " + msg.message
+        };
+        
+        Send(newMessage, clients);
+    }
+    
     private void OnSpawnBullet(Net_SpawnBullet msg)
     {
         //Spawn Bullets in server scene

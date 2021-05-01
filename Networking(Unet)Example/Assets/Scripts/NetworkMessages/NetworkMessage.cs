@@ -18,6 +18,7 @@
     public const int EnemyDamage = 15;
     public const int PlayerDeath = 16;
     public const int PlayerDamage = 17;
+    public const int ChatMessage = 18;
 
 }
 

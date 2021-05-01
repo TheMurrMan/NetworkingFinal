@@ -4,10 +4,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Networking;
-using UnityEngine.UIElements;
 using Slider = UnityEngine.UI.Slider;
 
 [Serializable]
@@ -89,6 +89,7 @@ public class Client : MonoBehaviour
     [SerializeField] public Dictionary<int, Enemy> enemies = new Dictionary<int, Enemy>();
     [SerializeField] public Dictionary<int, GameObject> bullets = new Dictionary<int, GameObject>();
 
+    public GameObject ChatCanvas;
     private void Start()
     {
     }
@@ -97,7 +98,7 @@ public class Client : MonoBehaviour
     {
         Debug.Log("Connecting");
         // Does the player have a name
-        string pName = GameObject.Find("NameInput").GetComponent<InputField>().text;
+        string pName = GameObject.Find("NameInput").GetComponent<TMP_InputField>().text;
 
         if (pName == "")
         {
@@ -251,9 +252,17 @@ public class Client : MonoBehaviour
             case NetCode.PlayerDeath:
                 OnPlayerDeath((Net_PlayerDeath) msg);
                 break;
+            case NetCode.ChatMessage:
+                OnChatMessageRecieve((Net_SendChatMessage) msg);
+                break;
         }
     }
 
+    private void OnChatMessageRecieve(Net_SendChatMessage msg)
+    {
+        FindObjectOfType<ChatManager>().HandleNewMessage(msg.message);
+    }
+    
     public void RemoveBullet(int id)
     {
         Destroy(bullets[id]);
@@ -476,7 +485,8 @@ public class Client : MonoBehaviour
         if (cnnID == ourClientID)
         {
             // Remove canvas
-            GameObject.Find("Canvas").SetActive(false);
+            GameObject.Find("ConnectCanvas").SetActive(false);
+            ChatCanvas.SetActive(true);
             go.AddComponent<PlayerController>();
             Rigidbody rb = go.AddComponent<Rigidbody>();
             rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ | RigidbodyConstraints.FreezePositionY;
@@ -525,6 +535,12 @@ public class Client : MonoBehaviour
         formatter.Serialize(ms, msg);
 
         NetworkTransport.Send(hostID, connectionID, reliableChannel, buffer, BYTE_SIZE, out error);
+    }
+
+    public void SendChatMessage(string chatMessage)
+    {
+        Net_SendChatMessage msg = new Net_SendChatMessage() {username = ourPlayerName, message = chatMessage};
+        SendServer(msg);
     }
 }
 #pragma warning restore 618
