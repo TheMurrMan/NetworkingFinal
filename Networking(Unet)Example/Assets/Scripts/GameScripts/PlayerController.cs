@@ -23,7 +23,6 @@ public class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         cam = FindObjectOfType<Camera>();
         client = FindObjectOfType<Client>();
-
         gunEnd = transform.GetChild(2);
         bulletPrefab = Resources.Load("Bullet") as GameObject;
 
@@ -41,7 +40,7 @@ public class PlayerController : MonoBehaviour
         if (playerHealth <= 0)
 		{
             Debug.Log("DIE");
-            Die();
+            
         }
     }
     private void FixedUpdate()
@@ -84,12 +83,6 @@ public class PlayerController : MonoBehaviour
         FindObjectOfType<Client>().OnBulletSpawn(g);
         Destroy(g);
 	}
-
-    void Die()
-	{
-        //Destroy(gameObject);
-	}
-
 
     public int GetHealth()
 	{

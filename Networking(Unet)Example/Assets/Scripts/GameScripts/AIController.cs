@@ -11,8 +11,8 @@ public class AIController : MonoBehaviour
     [SerializeField] float attackTimer = 0;
     [SerializeField] float resetAttackTimer = 0.5f;
 
-    public int myId; 
-    ServerClient closestPlayer;
+    public int myId;
+    [SerializeField] ServerClient closestPlayer;
     public AIState state;
     private Slider healthBar;
 

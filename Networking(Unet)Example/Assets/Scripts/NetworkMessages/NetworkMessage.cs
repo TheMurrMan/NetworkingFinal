@@ -19,7 +19,8 @@
     public const int PlayerDeath = 16;
     public const int PlayerDamage = 17;
     public const int ChatMessage = 18;
-
+    public const int AskWin = 19;
+    public const int AskLose = 20;
 }
 
 

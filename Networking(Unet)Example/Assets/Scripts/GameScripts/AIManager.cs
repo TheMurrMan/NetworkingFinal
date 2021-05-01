@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class AIManager : MonoBehaviour
 {
@@ -73,8 +74,6 @@ public class AIManager : MonoBehaviour
         {
             SpawnWave(waves[nextWave]);
         }
-
-        
     }
 
     void WaveCompleted()
@@ -84,11 +83,13 @@ public class AIManager : MonoBehaviour
         state = SpawnState.Counting;
         waveCountdown = timeBetweenWaves;
 
-        if(nextWave+1 > waves.Length -1)
+        if(nextWave + 1 > waves.Length - 1)
 		{
             nextWave = 0;
             Debug.Log("All waves complete");
-		}
+            // WIN State
+            FindObjectOfType<Server>().lose = true;
+        }
 
         nextWave++;
     }

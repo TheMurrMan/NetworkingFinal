@@ -6,6 +6,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 using UnityEngine;
 using UnityEngine.Networking;
 
+
 [System.Serializable]
 public class ServerClient
 {
@@ -48,7 +49,8 @@ public class Server : MonoBehaviour
     private int bulletID = 0;
     public List<BulletController> bullets = new List<BulletController>();
 
-
+    public bool lose = false;
+    public bool win = false;
     private void Start()
     {
         NetworkTransport.Init();
@@ -156,6 +158,12 @@ public class Server : MonoBehaviour
             }
 
             Send(enemyPosition, clients);
+
+            if(clients.Count == 0)
+			{
+                Debug.Log("Lose");
+                
+			}
         }
     }
 
@@ -273,6 +281,24 @@ public class Server : MonoBehaviour
         Send(msg, clients);
     }
 
+    public void OnWin(int id)
+	{
+        Net_AskWin msg = new Net_AskWin()
+        {
+            ownID = id
+        };
+        Send(msg, clients);
+    }
+
+    public void OnLose(int id)
+    {
+        Net_AskLose msg = new Net_AskLose()
+        {
+            ownID = id
+        };
+        Send(msg, clients);
+    }
+
     public void OnEnemyDeath(int id)
     {
         Net_EnemyDeath msg = new Net_EnemyDeath()
@@ -281,6 +307,13 @@ public class Server : MonoBehaviour
         };
         Send(msg, clients);
     }
+
+    public void OnPlayerDeath(int id)
+	{
+        Net_PlayerDeath msg = new Net_PlayerDeath() { playerID = id};
+        clients.Find(x => x.connectionID == msg.playerID);
+        Send(msg, clients);
+	}
 
     public void OnMyHealth(Net_MyHealth msg)
     {
@@ -357,12 +390,23 @@ public class Server : MonoBehaviour
     {
         client.health -= 2;
 
-        Net_PlayerDamage playerDamage = new Net_PlayerDamage()
+        if (client.health >= 0)
         {
-            newHealth = client.health,
-            playerID = client.connectionID,
-        };
-        Send(playerDamage, clients);
+            Net_PlayerDamage playerDamage = new Net_PlayerDamage()
+            {
+                newHealth = client.health,
+                playerID = client.connectionID,
+            };
+            Send(playerDamage, clients);
+        }
+
+        else
+		{
+            Debug.Log("die");
+            OnPlayerDeath(client.connectionID);
+            clients.Remove(clients.Find(x => x.connectionID == client.connectionID));
+		}
+        
     }
 
     private void Send(NetMessage msg, int cnnID)

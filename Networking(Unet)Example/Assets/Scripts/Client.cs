@@ -9,6 +9,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Networking;
 using Slider = UnityEngine.UI.Slider;
+using UnityEngine.SceneManagement;
 
 [Serializable]
 public class Player
@@ -85,6 +86,7 @@ public class Client : MonoBehaviour
     private float updateEnemyTime;
     private float updateTime;
 
+    public bool isOtherPlayerDead;
     [SerializeField] public List<Player> players = new List<Player>();
     [SerializeField] public Dictionary<int, Enemy> enemies = new Dictionary<int, Enemy>();
     [SerializeField] public Dictionary<int, GameObject> bullets = new Dictionary<int, GameObject>();
@@ -138,10 +140,16 @@ public class Client : MonoBehaviour
         UpdateOtherPlayerPosition();
         UpdateEnemyPosition();
 
-        /*if(healthBar != null)
+        if(FindObjectOfType<Server>().lose)
 		{
-            healthBar.value = ourHealth;
-        }*/
+            SceneManager.LoadScene("LoseScene");
+        }
+
+        if (FindObjectOfType<Server>().win)
+        {
+            SceneManager.LoadScene("WinScene");
+        }
+        
     }
 
     private void UpdateOtherPlayerPosition()
@@ -156,6 +164,7 @@ public class Client : MonoBehaviour
                 updatePositionTime -= Time.deltaTime;
                 p.avatar.transform.position = Vector3.Lerp(p.oldPosition, p.newPosition, .1f);
             }
+
             else if (p.isMoving)
             {
                 // Dead Reckoning
@@ -255,6 +264,12 @@ public class Client : MonoBehaviour
             case NetCode.ChatMessage:
                 OnChatMessageRecieve((Net_SendChatMessage) msg);
                 break;
+            case NetCode.AskWin:
+                OnAskWin((Net_AskWin)msg);
+                break;
+            case NetCode.AskLose:
+                OnAskLose((Net_AskLose)msg);
+                break;
         }
     }
 
@@ -275,6 +290,15 @@ public class Client : MonoBehaviour
         RemoveBullet(msg.bulletID);
     }
 
+    private void OnAskWin(Net_AskWin msg)
+	{
+        SceneManager.LoadScene("WinScene");
+	}
+
+    private void OnAskLose(Net_AskLose msg)
+    {
+        SceneManager.LoadScene("LoseScene");
+    }
     private void OnEnemyDeath(Net_EnemyDeath msg)
     {
         Destroy(enemies[msg.enemyID].enemy);
