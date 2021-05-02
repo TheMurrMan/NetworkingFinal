@@ -40,7 +40,7 @@ public class AIController : MonoBehaviour
         if (attackTimer <= 0)
             attackTimer = resetAttackTimer;
 
-        if(closestPlayer == null)
+        if(closestPlayer.health <= 0)
 		{
             GetClosestPlayer();
 		}
@@ -136,6 +136,8 @@ public class AIController : MonoBehaviour
         List<ServerClient> clients = FindObjectOfType<Server>().clients;
         foreach (ServerClient client in clients)
         {
+            if (client.health <= 0) continue;
+
             float distanceToPlayer = (client.position - transform.position).sqrMagnitude;
             if (distanceToPlayer < distanceToClosestPlayer)
             {

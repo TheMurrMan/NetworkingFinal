@@ -88,7 +88,7 @@ public class AIManager : MonoBehaviour
             nextWave = 0;
             Debug.Log("All waves complete");
             // WIN State
-            FindObjectOfType<Server>().lose = true;
+            FindObjectOfType<Server>().OnWin();
         }
 
         nextWave++;

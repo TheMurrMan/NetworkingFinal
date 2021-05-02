@@ -36,12 +36,6 @@ public class PlayerController : MonoBehaviour
         GetPlayerInput();
 
         playerHealth = client.ourHealth;
-        
-        if (playerHealth <= 0)
-		{
-            Debug.Log("DIE");
-            
-        }
     }
     private void FixedUpdate()
     {

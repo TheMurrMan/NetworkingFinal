@@ -36,26 +36,6 @@ public class Enemy
 
 public class Client : MonoBehaviour
 {
-    /* private static Client _instance;
- 
-     public static Client m_Instance
-     {
-         get
-         {
-             if (_instance == null)
-             {
-                 _instance = FindObjectOfType<Client>();
-             }
- 
-             return _instance;
-         }
-     }*/
-
-    private void Awake()
-    {
-        DontDestroyOnLoad(gameObject);
-    }
-
     private const int MAX_CONNECTION = 100;
     private const int PORT = 5701;
     private const int BYTE_SIZE = 1024;
@@ -143,16 +123,6 @@ public class Client : MonoBehaviour
 
         UpdateOtherPlayerPosition();
         UpdateEnemyPosition();
-
-        if (FindObjectOfType<Server>().lose)
-        {
-            SceneManager.LoadScene("LoseScene");
-        }
-
-        if (FindObjectOfType<Server>().win)
-        {
-            SceneManager.LoadScene("WinScene");
-        }
     }
 
     private void UpdateOtherPlayerPosition()
@@ -296,8 +266,7 @@ public class Client : MonoBehaviour
     private void OnAskWin(Net_AskWin msg)
     {
         SceneManager.LoadScene("WinScene");
-    }
-
+	}
     private void OnAskLose(Net_AskLose msg)
     {
         SceneManager.LoadScene("LoseScene");

@@ -46,6 +46,7 @@ public class Server : MonoBehaviour
     private float lastMovementUpdate;
     private float movementUpdateRate = 0.1f;
 
+    [SerializeField] private int playersDead = 0;
     private int bulletID = 0;
     public List<BulletController> bullets = new List<BulletController>();
 
@@ -159,10 +160,10 @@ public class Server : MonoBehaviour
 
             Send(enemyPosition, clients);
 
-            if(clients.Count == 0)
+            if(playersDead == 2)
 			{
                 Debug.Log("Lose");
-                
+                OnLose();
 			}
         }
     }
@@ -281,20 +282,20 @@ public class Server : MonoBehaviour
         Send(msg, clients);
     }
 
-    public void OnWin(int id)
+    public void OnWin()
 	{
         Net_AskWin msg = new Net_AskWin()
         {
-            ownID = id
+            
         };
         Send(msg, clients);
     }
 
-    public void OnLose(int id)
+    public void OnLose()
     {
         Net_AskLose msg = new Net_AskLose()
         {
-            ownID = id
+            
         };
         Send(msg, clients);
     }
@@ -311,7 +312,7 @@ public class Server : MonoBehaviour
     public void OnPlayerDeath(int id)
 	{
         Net_PlayerDeath msg = new Net_PlayerDeath() { playerID = id};
-        clients.Find(x => x.connectionID == msg.playerID);
+        playersDead++;
         Send(msg, clients);
 	}
 
@@ -390,7 +391,7 @@ public class Server : MonoBehaviour
     {
         client.health -= 2;
 
-        if (client.health >= 0)
+        if (client.health > 0)
         {
             Net_PlayerDamage playerDamage = new Net_PlayerDamage()
             {
@@ -404,7 +405,6 @@ public class Server : MonoBehaviour
 		{
             Debug.Log("die");
             OnPlayerDeath(client.connectionID);
-            clients.Remove(clients.Find(x => x.connectionID == client.connectionID));
 		}
         
     }
