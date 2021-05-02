@@ -91,9 +91,13 @@ public class Client : MonoBehaviour
     [SerializeField] public Dictionary<int, Enemy> enemies = new Dictionary<int, Enemy>();
     [SerializeField] public Dictionary<int, GameObject> bullets = new Dictionary<int, GameObject>();
 
+    public GameObject ConnectCanvas;
     public GameObject ChatCanvas;
+
     private void Start()
     {
+        ConnectCanvas.SetActive(true);
+        ChatCanvas.SetActive(false);
     }
 
     public void Connect()
@@ -140,8 +144,8 @@ public class Client : MonoBehaviour
         UpdateOtherPlayerPosition();
         UpdateEnemyPosition();
 
-        if(FindObjectOfType<Server>().lose)
-		{
+        if (FindObjectOfType<Server>().lose)
+        {
             SceneManager.LoadScene("LoseScene");
         }
 
@@ -149,7 +153,6 @@ public class Client : MonoBehaviour
         {
             SceneManager.LoadScene("WinScene");
         }
-        
     }
 
     private void UpdateOtherPlayerPosition()
@@ -265,10 +268,10 @@ public class Client : MonoBehaviour
                 OnChatMessageRecieve((Net_SendChatMessage) msg);
                 break;
             case NetCode.AskWin:
-                OnAskWin((Net_AskWin)msg);
+                OnAskWin((Net_AskWin) msg);
                 break;
             case NetCode.AskLose:
-                OnAskLose((Net_AskLose)msg);
+                OnAskLose((Net_AskLose) msg);
                 break;
         }
     }
@@ -277,7 +280,7 @@ public class Client : MonoBehaviour
     {
         FindObjectOfType<ChatManager>().HandleNewMessage(msg.message);
     }
-    
+
     public void RemoveBullet(int id)
     {
         Destroy(bullets[id]);
@@ -291,14 +294,15 @@ public class Client : MonoBehaviour
     }
 
     private void OnAskWin(Net_AskWin msg)
-	{
+    {
         SceneManager.LoadScene("WinScene");
-	}
+    }
 
     private void OnAskLose(Net_AskLose msg)
     {
         SceneManager.LoadScene("LoseScene");
     }
+
     private void OnEnemyDeath(Net_EnemyDeath msg)
     {
         Destroy(enemies[msg.enemyID].enemy);

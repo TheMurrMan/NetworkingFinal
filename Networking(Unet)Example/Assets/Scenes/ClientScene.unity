@@ -2258,6 +2258,7 @@ MonoBehaviour:
   healthBar: {fileID: 0}
   isOtherPlayerDead: 0
   players: []
+  ConnectCanvas: {fileID: 497041466}
   ChatCanvas: {fileID: 1972332904}
 --- !u!4 &1885522384
 Transform:
@@ -2291,7 +2292,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1972332905
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2407,10 +2408,10 @@ RectTransform:
   m_Father: {fileID: 1972332908}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -653, y: 258.6}
-  m_SizeDelta: {x: -1364.0803, y: -552.46875}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 307, y: -281.4}
+  m_SizeDelta: {x: 555.9197, y: 527.53125}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2003648131
 MonoBehaviour:
